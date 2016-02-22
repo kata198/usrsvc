@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+
+
+
+import os
+import sys
+import signal
+import subprocess
+import time
+
+from usrsvcmod.config import config as usrsvcconfig
+from usrsvcmod.Program import Program
+
+class VarStore(object):
+    def __init__(self):
+        self.value = None
+
+    def setValue(self, value):
+        self.value = value
+
+    def getValue(self):
+        return self.value
+
+
+def printUsage():
+    sys.stderr.write('Usage: usrsvcd\n  Optional daemon which monitors processes and keeps them running, and other optional features.\n\nUses config file in $HOME/usrsvc.cfg (%s)\n' %(os.environ['HOME'] + '/usrsvc.cfg',))
+
+
+global config
+config = None
+
+def rereadConfig(*args, **kwargs):
+    global config
+    config2 = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
+    config2.parse()
+
+    config = config2
+    
+# TODO: Configurable stdout/stderr file
+
+if __name__ == '__main__':
+    if '--help' in sys.argv or len(sys.argv) > 1:
+        printUsage()
+        sys.exit(1)
+
+    config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
+    config.parse()
+    mainPidFile = config.mainConfig.pidfile
+    try:
+        prog = Program.createFromPidFile(mainPidFile)
+        if prog and 'usrsvcd' in prog.cmdline:
+            sys.stderr.write('usrsvcd is already running:\n%s\n' %(str(prog.__dict__),))
+        f = open(mainPidFile, 'r')
+        contents = f.read()
+        f.close()
+    except:
+        pass
+        
+
+    pid = os.fork()
+    if pid != 0:
+        sys.exit(0)
+
+    with open(mainPidFile, 'wt') as f:
+        f.write(str(os.getpid()) + '\n')
+     
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+    signal.signal(signal.SIGUSR1, rereadConfig)
+#    config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
+#    config.parse()
+
+    startProcesses = {}
+    while True:
+        programConfigs = config.getProgramConfigs()
+        for programName, programConfig in programConfigs.items():
+            if programName in startProcesses:
+                if startProcesses[programName].poll() is None:
+                    continue
+                del startProcesses[programName]
+
+            prog = None
+            try:
+                prog = Program.createFromPidFile(programConfig.pidfile)
+                continue
+            except:
+                pass
+            sys.stdout.write("%s is not running. Trying to start.\n" %(programName,))
+            sys.stdout.flush()
+#            pid = os.fork()
+#            if pid == 0:
+            startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False)
+
+#            startProcesses[programName] = subprocess.Popen(['usrsvc', 'start',programName])
+        time.sleep(2) #TODO: Configurable poll time
+            
+            
