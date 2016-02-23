@@ -15,14 +15,14 @@ __all__ = ('MainConfig', )
 
 class MainConfig(object):
 
-    def __init__(self, programConfigDir=None, pidfile=None):
-        if programConfigDir and programConfigDir[-1] == '/':
-            programConfigDir = programConfigDir[:-1]
-        self.programConfigDir = programConfigDir
+    def __init__(self, config_dir=None, pidfile=None):
+        if config_dir and config_dir[-1] == '/':
+            config_dir = config_dir[:-1]
+        self.config_dir = config_dir
         self.pidfile = pidfile or (os.environ.get('HOME', '/tmp') + '/usrsvcd.pid')
 
     def getProgramConfigDir(self):
-        return self.programConfigDir
+        return self.config_dir
 
     def __str__(self):
         return str(self.__dict__)

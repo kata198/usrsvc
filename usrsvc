@@ -28,7 +28,7 @@ def doAction(args):
                 ret = ret2
         return ret
     # TODO: Configurable lock dir?
-    lock = NamedAtomicLock('lock_usrsvc' + programName, maxLockAge=30)
+    lock = NamedAtomicLock('.lock_usrsvc' + programName, maxLockAge=30)
     if not lock.acquire(31):
         sys.stderr.write('Cannot acquire lock for %s. Is something else looping trying to access it? Try the command again.\n' %(programName,))
         return 3
