@@ -72,7 +72,7 @@ def _doAction(args):
             return 1
 
     elif action == 'stop':
-        # TODO: Look into checking if we failed to stop program
+        
         prog = getRunningProgram(programConfig)
         if prog:
             prog.stopProgram(programConfig)

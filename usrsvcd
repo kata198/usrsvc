@@ -15,16 +15,6 @@ from usrsvcmod.config import config as usrsvcconfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 
-class VarStore(object):
-    def __init__(self):
-        self.value = None
-
-    def setValue(self, value):
-        self.value = value
-
-    def getValue(self):
-        return self.value
-
 
 def printUsage():
     sys.stderr.write('Usage: usrsvcd\n  Optional daemon which monitors processes and keeps them running, and other optional features.\n\nUses config file in $HOME/usrsvc.cfg (%s)\n' %(os.environ['HOME'] + '/usrsvc.cfg',))
@@ -43,6 +33,7 @@ def rereadConfig(*args, **kwargs):
     except Exception as e:
         sys.stderr.write('FAILED TO REREAD CONFIG: %s\n' %(str(e),))
         traceback.print_exc()
+        return
 
     config = config2
     
