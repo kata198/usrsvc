@@ -9,6 +9,8 @@ import subprocess
 import time
 import traceback
 
+from collections import defaultdict
+
 from usrsvcmod.config import config as usrsvcconfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
@@ -78,20 +80,27 @@ if __name__ == '__main__':
 #    config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
 #    config.parse()
 
+    # TODO: processWasStarted and processWasSeenRunning may be able to be consolidated into one variable.
     processWasStarted = {}
     processWasSeenRunning = set()
+
+    # Number of start attempts per app. Resets to 0 after a successful start.
+    numStartAttempts = defaultdict(int)
 
     startProcesses = {}
     while True:
         programConfigs = config.getProgramConfigs()
         for programName, programConfig in programConfigs.items():
+
             if programName in startProcesses:
+                # We ensure that we don't tag the program running when it is still starting by waiting for the pipe to finish.
+                #  usrsvc waits "success_seconds" before determining success.
                 if startProcesses[programName].poll() is None:
                     continue
                 del startProcesses[programName]
 
             # This goes after the thread check, incase they reload config and change autostart we don't leave a subprocess
-            if programConfigs.enabled is False or programConfig.autostart is False and programConfig.autorestart is False:
+            if programConfig.enabled is False or programConfig.autostart is False and programConfig.autorestart is False:
                 # If they don't want this managed by usrsvcd, continue to next program
                 continue
 
@@ -110,23 +119,37 @@ if __name__ == '__main__':
                 # Program is running, nothing to see here, move along.
                 if programName not in processWasSeenRunning:
                     processWasSeenRunning.add(programName)
+                # Reset our "failed start" counter
+                numStartAttempts[programName] = 0
+                continue
+
+            # Check if we have exceeded the max number of restarts, since last time it was started.
+            if programConfig.maxrestarts and numStartAttempts[programName] >= programConfig.maxrestarts:
+                if numStartAttempts[programName] == programConfig.maxrestarts:
+                    # If we equal this number, this is the first time we have exceeded max restarts.
+                    sys.stdout.write('%s has reached the maximum number of restarts %d. Further restarts will not be attempted until the process is seen running again (so manually fix, and run "usrsvc start %s").\n' %(programName, programConfig.maxrestarts, programName))
+                    sys.stdout.flush()
+                    numStartAttempts[programName] += 1
                 continue
 
             doStart = False
 
             if programConfig.autostart is True and processWasStarted[programName] is False:
                 # Process was not running when we started, and autostart is True, so start it.
-                sys.stdout.write("%s was not running and autostart=True. Trying to start.\n" %(programName,))
+                sys.stdout.write("%s was not running and autostart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
                 sys.stdout.flush()
                 processWasStarted[programName] = True
                 doStart = True
-            elif programConfig.autorestart is True and programName in processWasSeenRunning:
+            elif programConfig.autorestart is True and (programName in processWasSeenRunning or processWasStarted[programName] is True):
                 # We saw this process running at least once, so autorestart should apply.
-                sys.stdout.write("%s has stopped running, and autorestart=True. Trying to start.\n" %(programName,))
+                sys.stdout.write("%s has stopped running, and autorestart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
                 sys.stdout.flush()
                 doStart = True
 
             if doStart is True:
+                numStartAttempts[programName] += 1
+                # TODO in order to implement restartdelay, launching this subprocess needs to go into a thread. Or probably a better option,
+                #  is to not use the subprocess module and just os.fork -> exec, and incorporate the sleep therein,
                 startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False)
 
 

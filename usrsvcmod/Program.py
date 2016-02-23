@@ -110,8 +110,6 @@ class Program(object):
 
 
     def startProgram(self, programConfig):
-        # TODO: Lock.
-        numRestarts = programConfig.numrestarts + 1
         useShell = programConfig.useshell
 
         if useShell is False:
@@ -119,44 +117,51 @@ class Program(object):
         else:
             command = programConfig.command
 
-        success = False
-        for i in range(numRestarts):
-            # TODO: redirect stderr and stdout
+        success = True
+        try:
+            stdout = open(programConfig.stdout, 'at')
+        except:
+            raise ValueError('Cannot open %s for writing.' %(programConfig.stdout,))
+        if programConfig.stdout == programConfig.stderr:
+            stderr = stdout
+        else:
             try:
-                stdout = open(programConfig.stdout, 'at')
+                stderr = open(programConfig.stderr, 'at')
             except:
-                raise ValueError('Cannot open %s for writing.' %(programConfig.stdout,))
-            if programConfig.stdout == programConfig.stderr:
-                stderr = stdout
-            else:
-                try:
-                    stderr = open(programConfig.stderr, 'at')
-                except:
-                    raise ValueError('Cannot open %s for writing.' %(programConfig.stderr,))
+                raise ValueError('Cannot open %s for writing.' %(programConfig.stderr,))
 
-            if programConfig.inherit_env:
-                env = os.environ
-            else:
-                env = {}
+        if programConfig.inherit_env:
+            env = os.environ
+        else:
+            env = {}
 
-            env.update(programConfig.Env)
+        env.update(programConfig.Env)
 
-            pipe = subprocess.Popen(command, shell=useShell, stdout=stdout, stderr=stderr, env=env)
-            # TODO: Loop on a smaller value to catch failure earlier
-            time.sleep(programConfig.success_seconds)
-            if pipe.poll() is None:
-                success = True
+        pipe = subprocess.Popen(command, shell=useShell, stdout=stdout, stderr=stderr, env=env)
+        
+        now = time.time()
+        successAfter = now + programConfig.success_seconds
+
+        pollTime = min(programConfig.success_seconds, .1)
+        while time.time() < successAfter:
+            time.sleep(pollTime)
+            if pipe.poll() is not None:
+                success = False
                 break
-            else:
-                restartDelay = programConfig.restartdelay - programConfig.success_seconds
-                if restartDelay > 0:
-                    time.sleep(restartDelay)
 
         if success is False:
+            # We've failed to restart after the given number of tries.
             return False
 
+        # Started successfully, update our dict.
         self.pid = int(pipe.pid)
-        self.setCmdlineFromProc()
+        try:
+            self.setCmdlineFromProc()
+        except:
+            # Oh no! By some fluke, the program stopped running while we were setting it up. Return False....
+            self.running = False
+            return False
+
         self.running = True
 
         self.writePidFile(programConfig, self.pid)
@@ -190,12 +195,15 @@ class Program(object):
                 termToKillSeconds = programConfig.term_to_kill_seconds
                 now = time.time()
                 maxTimeBeforeKill = now + termToKillSeconds
+
+                pollTime = min(termToKillSeconds, .1)
+
                 while now < maxTimeBeforeKill:
                     # If process has died, abort.
                     if not os.path.exists('/proc/%d' %(self.pid,)):
                         break
                     # Otherwise, wait 100ms before checking again.
-                    time.sleep(.1)
+                    time.sleep(pollTime)
                     now = time.time()
 
                 # If program has not terminated given the threshold, send 'er the ol' boot.

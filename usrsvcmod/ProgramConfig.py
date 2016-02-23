@@ -21,9 +21,9 @@ class ProgramConfig(object):
 
     def __init__(self, name, 
             command=None, pidfile=None, autostart=True,
-            autorestart=True, numrestarts=2, restartdelay=2,
+            autorestart=True, maxrestarts=0, restart_delay_seconds=2,
             autopid=True, useshell=True, proctitle_re=None, 
-            success_seconds=1, term_to_kill_seconds=3, scan_for_process=False,
+            success_seconds=2, term_to_kill_seconds=3, scan_for_process=False,
             stdout=None, stderr=None,
             enabled=True,
             inherit_env=True, Env=None,
@@ -33,14 +33,14 @@ class ProgramConfig(object):
         self.enabled = getConfigValueBool(enabled, 'enabled')
         self.autostart = getConfigValueBool(autostart, 'autostart')
         self.autorestart = getConfigValueBool(autorestart, 'autorestart')
-        self.numrestarts = getConfigValueInt(numrestarts)
-        self.restartdelay = getConfigValueFloat(restartdelay)
-        self.success_seconds = getConfigValueFloat(success_seconds)
+        self.maxrestarts = getConfigValueInt(maxrestarts, 'maxrestarts')
+        self.restart_delay_seconds = getConfigValueFloat(restart_delay_seconds, 'restart_delay_seconds')
+        self.success_seconds = getConfigValueFloat(success_seconds, 'success_seconds')
         self.autopid = getConfigValueBool(autopid, 'autopid')
         self.useshell = getConfigValueBool(useshell, 'useshell')
         self.scan_for_process = getConfigValueBool(scan_for_process, 'scan_for_process')
-        self.term_to_kill_seconds = getConfigValueFloat(term_to_kill_seconds)
-        self.inherit_env = getConfigValueBool(inherit_env)
+        self.term_to_kill_seconds = getConfigValueFloat(term_to_kill_seconds, 'term_to_kill_seconds')
+        self.inherit_env = getConfigValueBool(inherit_env, 'inherit_env')
         # TODO: Env is not working, subsection
         if not issubclass(Env.__class__, (type(None), dict)):
             raise ValueError('Env must be a subsection, like [[Env]]')
