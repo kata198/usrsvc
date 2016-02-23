@@ -12,7 +12,6 @@
 import os
 import re
 import shlex
-import sys
 
 from .configcommon import getConfigValueBool, getConfigValueInt, getConfigValueFloat
 
@@ -26,10 +25,12 @@ class ProgramConfig(object):
             autopid=True, useshell=True, proctitle_re=None, 
             success_seconds=1, term_to_kill_seconds=3, scan_for_process=False,
             stdout=None, stderr=None,
+            enabled=True,
             inherit_env=True, Env=None,
             **kwargs):
         self.command = command
         self.pidfile = pidfile
+        self.enabled = getConfigValueBool(enabled, 'enabled')
         self.autostart = getConfigValueBool(autostart, 'autostart')
         self.autorestart = getConfigValueBool(autorestart, 'autorestart')
         self.numrestarts = getConfigValueInt(numrestarts)
@@ -50,6 +51,7 @@ class ProgramConfig(object):
 
         if not name:
             raise ValueError('Program Config defined without a name.')
+        self.name = name
 
         if not command:
             raise ValueError('Missing command for program: "%s"' %(name,))

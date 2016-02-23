@@ -8,44 +8,12 @@ import traceback
 
 from usrsvcmod.config import config as usrsvcconfig
 from usrsvcmod.Program import Program
+from usrsvcmod.ProgramActions import getRunningProgram
 
 from NamedAtomicLock import NamedAtomicLock
 
-# TODO: Locking to ensure multiple operations aren't attempted on the same program
-
-def getRunningProgram(programName, programConfig):
-    prog = None
-    try:
-        prog = Program.createFromPidFile(programConfig.pidfile)
-    except:
-        pass
-
-
-
-    if prog is not None:
-        # A program is running, check if it is the RIGHT program
-        isCorrectApp = prog.validateProcTitle(programConfig)
-        if not isCorrectApp:
-            sys.stderr.write('Warning: Detected stale pid file for %s at %s (%d). REMOVING\n  Proctitle for %d was: %s\n' %(programName, programConfig.pidfile, prog.pid, prog.pid, prog.cmdline))
-            prog.removePidFile(programConfig)
-            prog = None
-        else:
-            # Program is running, and matched proctitle
-            return prog
-            
-    if prog is None:
-        if programConfig.scan_for_process is True:
-            # No PID or failed proctitle match, scan running processes
-            prog = Program.createFromRunningProcesses(programConfig)
-            if prog:
-                sys.stdout.write('Matched %s from running process:\n\n%s\n' %(programName, prog.__dict__))
-                prog.writePidFile(programConfig)
-                return prog
-
-    return prog
-
-
 def doAction(args):
+    action = args[0]
     programName = args[1]
     if programName == 'all':
         ret = 0
@@ -53,14 +21,14 @@ def doAction(args):
             try:
                 ret2 = doAction([action, singleProgramName])
             except Exception as e:
-                sys.stderr.write('Exception trying to %s %s\n' %(action, singleProgramName))
+                sys.stderr.write('Exception (%s) trying to %s %s\n' %(str(e.__class__.__name__), action, singleProgramName))
                 traceback.print_exc()
                 ret2 = 254
             if ret2 != 0:
                 ret = ret2
         return ret
     # TODO: Configurable lock dir?
-    lock = NamedAtomicLock('loxk_usrsvc' + programName, maxLockAge=30)
+    lock = NamedAtomicLock('lock_usrsvc' + programName, maxLockAge=30)
     if not lock.acquire(31):
         sys.stderr.write('Cannot acquire lock for %s. Is something else looping trying to access it? Try the command again.\n' %(programName,))
         return 3
@@ -73,20 +41,23 @@ def _doAction(args):
     action = args[0]
     programName = args[1]
 
-    if action == 'start':
-        try:
-            programConfig = config.getProgramConfig(programName)
-        except KeyError:
-            sys.stderr.write('No such program: %s\n' %(programName,))
-            return 2
+    try:
+        programConfig = config.getProgramConfig(programName)
+    except KeyError:
+        sys.stderr.write('No such program: %s\n' %(programName,))
+        return 2
 
+    if programConfig.enabled is False and action != 'status':
+        sys.stderr.write('Program %s is currently disabled in config. Only the "status" action is supported on disabled programs.\n' %(programName,))
+
+    if action == 'start':
         prog = None
         try:
             prog = Program.createFromPidFile(programConfig.pidfile)
         except:
             pass
 
-        prog = getRunningProgram(programName, programConfig)
+        prog = getRunningProgram(programConfig)
         if prog is not None:
             sys.stdout.write('Program %s is already running:\n\n%s\n' %(programName, prog.__dict__))
             return 0
@@ -101,14 +72,8 @@ def _doAction(args):
             return 1
 
     elif action == 'stop':
-        try:
-            programConfig = config.getProgramConfig(programName)
-        except KeyError:
-            sys.stderr.write('No such program: %s\n' %(programName,))
-            return 2
-
         # TODO: Look into checking if we failed to stop program
-        prog = getRunningProgram(programName, programConfig)
+        prog = getRunningProgram(programConfig)
         if prog:
             prog.stopProgram(programConfig)
         return 0
@@ -116,13 +81,7 @@ def _doAction(args):
         _doAction(['stop'] + args[1:])
         return _doAction(['start'] + args[1:])
     elif action == 'status':
-        try:
-            programConfig = config.getProgramConfig(programName)
-        except KeyError:
-            sys.stderr.write('No such program: %s\n' %(programName,))
-            return 2
-
-        prog = getRunningProgram(programName, programConfig)
+        prog = getRunningProgram(programConfig)
         if prog:
             sys.stdout.write('%s is running:\n\n%s\n' %(programName, str(prog.__dict__)))
             return 0

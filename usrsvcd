@@ -7,9 +7,11 @@ import sys
 import signal
 import subprocess
 import time
+import traceback
 
 from usrsvcmod.config import config as usrsvcconfig
 from usrsvcmod.Program import Program
+from usrsvcmod.ProgramActions import getRunningProgram
 
 class VarStore(object):
     def __init__(self):
@@ -31,8 +33,14 @@ config = None
 
 def rereadConfig(*args, **kwargs):
     global config
-    config2 = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
-    config2.parse()
+
+    sys.stdout.write('Got SIGUSR1, reprocessing config.\n')
+    try:
+        config2 = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
+        config2.parse()
+    except Exception as e:
+        sys.stderr.write('FAILED TO REREAD CONFIG: %s\n' %(str(e),))
+        traceback.print_exc()
 
     config = config2
     
@@ -70,6 +78,9 @@ if __name__ == '__main__':
 #    config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
 #    config.parse()
 
+    processWasStarted = {}
+    processWasSeenRunning = set()
+
     startProcesses = {}
     while True:
         programConfigs = config.getProgramConfigs()
@@ -79,19 +90,46 @@ if __name__ == '__main__':
                     continue
                 del startProcesses[programName]
 
+            # This goes after the thread check, incase they reload config and change autostart we don't leave a subprocess
+            if programConfigs.enabled is False or programConfig.autostart is False and programConfig.autorestart is False:
+                # If they don't want this managed by usrsvcd, continue to next program
+                continue
+
+
             prog = None
             try:
-                prog = Program.createFromPidFile(programConfig.pidfile)
-                continue
+                prog = getRunningProgram(programConfig)
             except:
                 pass
-            sys.stdout.write("%s is not running. Trying to start.\n" %(programName,))
-            sys.stdout.flush()
-#            pid = os.fork()
-#            if pid == 0:
-            startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False)
 
-#            startProcesses[programName] = subprocess.Popen(['usrsvc', 'start',programName])
+            # Record if we found this program started or stopped, for purposes of "autostart" and "autorestart"
+            if programName not in processWasStarted:
+                processWasStarted[programName] = bool(prog is not None)
+
+            if prog is not None: 
+                # Program is running, nothing to see here, move along.
+                if programName not in processWasSeenRunning:
+                    processWasSeenRunning.add(programName)
+                continue
+
+            doStart = False
+
+            if programConfig.autostart is True and processWasStarted[programName] is False:
+                # Process was not running when we started, and autostart is True, so start it.
+                sys.stdout.write("%s was not running and autostart=True. Trying to start.\n" %(programName,))
+                sys.stdout.flush()
+                processWasStarted[programName] = True
+                doStart = True
+            elif programConfig.autorestart is True and programName in processWasSeenRunning:
+                # We saw this process running at least once, so autorestart should apply.
+                sys.stdout.write("%s has stopped running, and autorestart=True. Trying to start.\n" %(programName,))
+                sys.stdout.flush()
+                doStart = True
+
+            if doStart is True:
+                startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False)
+
+
         time.sleep(2) #TODO: Configurable poll time
             
             
