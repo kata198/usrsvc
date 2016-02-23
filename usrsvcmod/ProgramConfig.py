@@ -26,7 +26,7 @@ class ProgramConfig(object):
             success_seconds=2, term_to_kill_seconds=3, scan_for_process=False,
             stdout=None, stderr=None,
             enabled=True,
-            inherit_env=True, Env=None,
+            inherit_env=True, Env=None, defaults=None,
             **kwargs):
         self.command = command
         self.pidfile = pidfile
@@ -41,7 +41,8 @@ class ProgramConfig(object):
         self.scan_for_process = getConfigValueBool(scan_for_process, 'scan_for_process')
         self.term_to_kill_seconds = getConfigValueFloat(term_to_kill_seconds, 'term_to_kill_seconds')
         self.inherit_env = getConfigValueBool(inherit_env, 'inherit_env')
-        # TODO: Env is not working, subsection
+        self.defaults = defaults
+        
         if not issubclass(Env.__class__, (type(None), dict)):
             raise ValueError('Env must be a subsection, like [[Env]]')
 

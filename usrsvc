@@ -106,6 +106,5 @@ if __name__ == '__main__':
     config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
     config.parse()
 
-
     sys.exit(doAction(sys.argv[1:]))
 
