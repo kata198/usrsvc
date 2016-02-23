@@ -17,47 +17,167 @@ from usrsvcmod.ProgramActions import getRunningProgram
 
 
 def printUsage():
-    sys.stderr.write('Usage: usrsvcd\n  Optional daemon which monitors processes and keeps them running, and other optional features.\n\nUses config file in $HOME/usrsvc.cfg (%s)\n' %(os.environ['HOME'] + '/usrsvc.cfg',))
+    sys.stderr.write('''Usage: usrsvcd (Optional: [action])
+Optional daemon portion of usrsvc which actively monitors processes and provides the autostart/autorestart, and other optional features.
+
+  Actions:
+    Running with no arguments starts the usrsvcd daemon. You can also provide one of several "action" arguments which affect the running instance of usrsvcd.
+
+      checkconfig            -   Try to parse config files and validate correctness, without affecting the running usrsvcd instance. Returns non-zero on failure.
+      reread                 -   Sends SIGUSR1 to the running usrsvcd process, which will cause it to reread configs and immediately apply the changes to the running instance.
+                                    If there are errors in the configs, a message will be logged by the usrsvcd process and it will retain its current configuration state.
+      restart                -   Restarts the usrsvcd daemon cleanly
+      status                 -   Checks if usrsvcd is running. Returns non-zero on failure
+
+Uses main config file in $HOME/usrsvc.cfg''')
+    sys.stderr.write('( %s/%s )\n' %(os.environ['HOME'], '/usrsvc.cfg'))
 
 
 global config
 config = None
 
+global keepGoing
+keepGoing = True
+
+
+def handle_sigterm(*args, **kwargs):
+    global keepGoing
+    keepGoing = False
+
+    sys.stderr.write('usrsvcd got SIGTERM, shutting down.\n')
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    return True
+ 
+
 def rereadConfig(*args, **kwargs):
     global config
 
     sys.stdout.write('Got SIGUSR1, reprocessing config.\n')
-    try:
-        config2 = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
-        config2.parse()
-    except Exception as e:
-        sys.stderr.write('FAILED TO REREAD CONFIG: %s\n' %(str(e),))
-        traceback.print_exc()
+
+    config2 = getConfig()
+    if not config2:
         return
 
     config = config2
     
-# TODO: Configurable stdout/stderr file
 
-if __name__ == '__main__':
-    if '--help' in sys.argv or len(sys.argv) > 1:
-        printUsage()
-        sys.exit(1)
+def getConfig():
+    configPath = os.environ['HOME'] + '/usrsvc.cfg'
+
+    if not os.path.exists(configPath) or not os.access(configPath, os.R_OK):
+        sys.stderr.write('Missing config file: %s\n' %(configPath,))
+        return None
 
     config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
-    config.parse()
+    try:
+        config.parse()
+    except ValueError as e:
+        sys.stderr.write('Error in configuration: %s\n' %(str(e),))
+        return None
+
+    return config
+    
+def getUsrsvcdProg():
+    global config
+
     mainPidFile = config.mainConfig.pidfile
     try:
         prog = Program.createFromPidFile(mainPidFile)
         if prog and 'usrsvcd' in prog.cmdline:
-            sys.stderr.write('usrsvcd is already running:\n%s\n' %(str(prog.__dict__),))
-        f = open(mainPidFile, 'r')
-        contents = f.read()
-        f.close()
+            return prog
     except:
         pass
-        
 
+    return None
+
+# TODO: Configurable stdout/stderr file
+
+if __name__ == '__main__':
+    if '--help' in sys.argv:
+        printUsage()
+        sys.exit(1)
+
+
+    args = sys.argv[1:]
+    if len(args) > 1:
+        sys.stderr.write('Too many arguments.\n\n')
+        printUsage()
+        sys.exit(1)
+    
+    if args:
+        # They provided an action
+        arg = args[0]
+        if arg == 'checkconfig':
+            config = getConfig()
+            if not config:
+                sys.exit(1)
+            sys.exit(0)
+        elif arg == 'status':
+            config = getConfig()
+            if not config:
+                sys.stderr.write('Error in config, cannot check status.\n')
+                sys.exit(254)
+            usrsvcdProg = getUsrsvcdProg()
+            if not usrsvcdProg:
+                sys.stderr.write('usrsvcd is not running.\n')
+                sys.exit(1)
+            sys.stdout.write('usrsvcd is running:\n\n%s\n' %(str(usrsvcdProg),))
+            sys.exit(0)
+        elif arg == 'reread':
+            config = getConfig()
+            if not config:
+                sys.stderr.write('Error in config, cannot continue.\n')
+                sys.exit(254)
+            usrsvcdProg = getUsrsvcdProg()
+            if not usrsvcdProg:
+                sys.stderr.write('usrsvcd is not running.\n')
+                sys.exit(0) # Not an error condition, because the changes will be applied whenever usrsvcd is started.
+            os.kill(usrsvcdProg.pid, signal.SIGUSR1)
+            sys.exit(0)
+        elif arg == 'restart':
+            config = getConfig()
+            if not config:
+                sys.stderr.write('Error in config, cannot continue.\n')
+                sys.exit(254)
+            usrsvcdProg = getUsrsvcdProg()
+            if usrsvcdProg:
+                try:
+                    os.kill(usrsvcdProg.pid, signal.SIGTERM)
+                except:
+                    # could not send sigterm?
+                    if os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
+                        sys.stderr.write('Cannot terminate existing usrsvcd process:\n\n%s\n' %(str(usrsvcdProg),))
+                        sys.exit(1)
+
+                # Wait for process to die cleanly.
+                time.sleep(.1)
+                now = time.time()
+                maxWait = now + 5.0
+                while os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
+                    time.sleep(.1)
+                    if time.time() > maxWait:
+                        # Took too long, send it sig kill.
+                        try:
+                            os.kill(usrsvcdProg.pid, signal.SIGKILL)
+                        except:
+                            pass
+                        break
+            subprocess.Popen(['usrsvcd'], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
+            sys.exit(0)
+    # END provided action
+            
+            
+    config = getConfig()
+    if config is None:
+        sys.exit(4)
+
+    mainPidFile = config.mainConfig.pidfile
+    usrsvcdProg = getUsrsvcdProg()
+    if usrsvcdProg:
+        sys.stderr.write('usrsvcd is already running:\n\n%s\n' %(str(usrsvcdProg),))
+        sys.exit(1)
+
+    # Ok, no other process is running, we are good to go. Fork and exit parent. Child continues.
     pid = os.fork()
     if pid != 0:
         sys.exit(0)
@@ -68,6 +188,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     signal.signal(signal.SIGCHLD, signal.SIG_IGN)
     signal.signal(signal.SIGUSR1, rereadConfig)
+    signal.signal(signal.SIGTERM, handle_sigterm)
 #    config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
 #    config.parse()
 
@@ -79,7 +200,7 @@ if __name__ == '__main__':
     numStartAttempts = defaultdict(int)
 
     startProcesses = {}
-    while True:
+    while keepGoing is True:
         programConfigs = config.getProgramConfigs()
         for programName, programConfig in programConfigs.items():
 
@@ -145,5 +266,4 @@ if __name__ == '__main__':
 
 
         time.sleep(2) #TODO: Configurable poll time
-            
             
