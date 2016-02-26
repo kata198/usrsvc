@@ -26,7 +26,7 @@ class MainConfig(object):
                 config_dir = config_dir[:-1]
 
         self.config_dir = config_dir
-        self.pidfile = pidfile or (os.environ.get('HOME', '/tmp') + '/usrsvcd.pid')
+        self.pidfile = pidfile or (os.environ.get('HOME', '/tmp') + '/%d_usrsvcd.pid' %(os.getuid()))
         if usrsvcd_stdout:
             if usrsvcd_stdout[0] != '/':
                 raise ValueError('usrsvcd_stdout in [Main], if defined, must be an absolute path.')

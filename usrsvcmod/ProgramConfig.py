@@ -32,6 +32,8 @@ class ProgramConfig(object):
             **kwargs):
         self.command = command
         self.pidfile = pidfile
+        if not pidfile or pidfile[0] != '/':
+            raise ValueError('pidfile must be defined for a program and must be an absolute path.')
         self.enabled = getConfigValueBool(enabled, 'enabled')
         self.autostart = getConfigValueBool(autostart, 'autostart')
         self.autorestart = getConfigValueBool(autorestart, 'autorestart')
