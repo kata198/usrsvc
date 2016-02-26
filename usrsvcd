@@ -138,7 +138,7 @@ def doMonitoring():
                         # We got an exception, just try again.
                         continue
                 if doRestart is True:
-                    restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False)
+                    restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
                     restarting.add(programName)
         except:
             pass
@@ -368,7 +368,7 @@ if __name__ == '__main__':
                     numStartAttempts[programName] += 1
                     # TODO in order to implement restartdelay, launching this subprocess needs to go into a thread. Or probably a better option,
                     #  is to not use the subprocess module and just os.fork -> exec, and incorporate the sleep therein,
-                    startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False)
+                    startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
             except:
                 # If we got a non-specific exception, assume something happened like something restarted the process outside of this loop, and ignore it.
                 pass
