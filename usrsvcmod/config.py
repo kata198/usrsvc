@@ -85,12 +85,17 @@ class config(object):
                         if defaultName not in self.defaultSettings:
                             raise ValueError('Program "%s" in file "%s" uses a "defaults" of "%s", but no such DefaultSettings section exists in read configuration files!' %( name, fname, defaultName))
                         item2 = self.defaultSettings[defaultName]
-                        # Merge subsection if present
+                        item2 = copy.deepcopy(item2)
+                        # Merge subsections if present
                         if 'Env' in item2 and 'Env' in item:
-                            item2 = copy.deepcopy(item2)
                             item2['Env'].update(item['Env'])
                             item['Env'] = item2['Env']
                             del item2['Env']
+                        if 'Monitoring' in item2 and 'Monitoring' in item:
+                            item2['Monitoring'].update(item['Monitoring'])
+                            item['Monitoring'] = item2['Monitoring']
+                            del item2['Monitoring']
+
                         item2.update(item)
                         item = item2
 

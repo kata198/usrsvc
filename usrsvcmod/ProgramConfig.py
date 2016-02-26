@@ -14,6 +14,7 @@ import re
 import shlex
 
 from .configcommon import getConfigValueBool, getConfigValueInt, getConfigValueFloat
+from .MonitoringConfig import MonitoringConfig
 
 __all__ = ('ProgramConfig', )
 
@@ -26,7 +27,8 @@ class ProgramConfig(object):
             success_seconds=2, term_to_kill_seconds=3, scan_for_process=False,
             stdout=None, stderr=None,
             enabled=True,
-            inherit_env=True, Env=None, defaults=None,
+            inherit_env=True, Env=None, Monitoring=None,
+            defaults=None,
             **kwargs):
         self.command = command
         self.pidfile = pidfile
@@ -49,6 +51,13 @@ class ProgramConfig(object):
         if Env is None:
             Env = {}
         self.Env = Env
+
+        if not issubclass(Monitoring.__class__, (type(None), dict)):
+            raise ValueError('Monitoring must be a subsection, like [[Monitoring]]')
+        if Monitoring is None:
+            Monitoring = {}
+        self.Monitoring = MonitoringConfig(**Monitoring)
+
 
         if not name:
             raise ValueError('Program Config defined without a name.')
