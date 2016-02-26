@@ -83,12 +83,20 @@ class Program(object):
     @classmethod
     def createFromRunningProcesses(cls, programConfig):
         myUid = os.getuid()
-        allMyPids = [int(x) for x in os.listdir('/proc') if x.isdigit() and os.stat('/proc/' + x).st_uid == myUid]
+        allMyPids = []
+        # Do in a loop incase processes are created/destroyed between getting the list and checking it
+        for procItem in os.listdir('/proc'):
+            try:
+                if procItem.isdigit() and os.stat('/proc/' + procItem).st_uid == myUid:
+                    allMyPids.append(int(procItem))
+            except:
+                pass
 
         proctitleRE = programConfig.proctitle_re
 
         for pid in allMyPids:
             try:
+                # Do in a loop incase processes are created/destroyed between getting the list and checking it
                 procCmdline = cls._getProcCmdline(pid)
                 if bool(proctitleRE.search(procCmdline['cmdline'])):
                     prog = cls(programConfig.pidfile, pid, running=True, **procCmdline)
