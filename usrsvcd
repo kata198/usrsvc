@@ -108,36 +108,40 @@ def doMonitoring():
     restartProcesses = {}
 
     while keepGoing is True:
-        programConfigs = config.getProgramConfigs()
-        for programName, programConfig in programConfigs.items():
-            if programName in restartProcesses:
-                if restartProcesses[programName].poll() is None:
-                    continue
-                del restartProcesses[programName]
-                restarting.remove(programName)
-                continue # We can just skip here, it just completed a restart. Give it a chance to get goin'
+        try:
+            programConfigs = config.getProgramConfigs()
+            for programName, programConfig in programConfigs.items():
+                if programName in restartProcesses:
+                    if restartProcesses[programName].poll() is None:
+                        continue
+                    del restartProcesses[programName]
+                    restarting.remove(programName)
+                    continue # We can just skip here, it just completed a restart. Give it a chance to get goin'
 
-            doRestart = False
-            if programConfig.Monitoring.activityfile:
-                activityFile = programConfig.Monitoring.activityfile
-                try:
-                    if not os.path.exists(activityFile):
-                        sys.stdout.write('Restarting %s because activity file ( %s )does not exist\n' %(programName, activityFile,))
-                        sys.stdout.flush()
-                        doRestart = True
-                    if doRestart is False:
-                        lastModified = os.stat(activityFile).st_mtime
-                        threshold = time.time() - programConfig.Monitoring.activityfile_limit
-                        if lastModified < threshold:
-                            sys.stdout.write('Restarting %s because it has not modified activity file ( %s ) in %d seconds. Limit is %d.\n' %(programName, activityFile, int(threshold - lastModified), programConfig.Monitoring.activityfile_limit))
+                doRestart = False
+                if programConfig.Monitoring.activityfile:
+                    activityFile = programConfig.Monitoring.activityfile
+                    try:
+                        if not os.path.exists(activityFile):
+                            sys.stdout.write('Restarting %s because activity file ( %s )does not exist\n' %(programName, activityFile,))
                             sys.stdout.flush()
                             doRestart = True
-                except:
-                    # We got an exception, just try again.
-                    continue
-            if doRestart is True:
-                restarting.add(programName)
-                restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False)
+                        if doRestart is False:
+                            lastModified = os.stat(activityFile).st_mtime
+                            threshold = time.time() - programConfig.Monitoring.activityfile_limit
+                            if lastModified < threshold:
+                                sys.stdout.write('Restarting %s because it has not modified activity file ( %s ) in %d seconds. Limit is %d.\n' %(programName, activityFile, int(threshold - lastModified), programConfig.Monitoring.activityfile_limit))
+                                sys.stdout.flush()
+                                doRestart = True
+                    except:
+                        # We got an exception, just try again.
+                        continue
+                if doRestart is True:
+                    restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False)
+                    restarting.add(programName)
+            except:
+                pass
+                # If we get an exception, don't fail. Just try, try again.
 
         time.sleep(5)
 

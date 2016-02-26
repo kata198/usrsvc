@@ -22,7 +22,7 @@ class ProgramConfig(object):
 
     def __init__(self, name, 
             command=None, pidfile=None, autostart=True,
-            autorestart=True, maxrestarts=0, restart_delay_seconds=2,
+            autorestart=True, maxrestarts=0,
             autopid=True, useshell=True, proctitle_re=None, 
             success_seconds=2, term_to_kill_seconds=3, scan_for_process=False,
             stdout=None, stderr=None,
@@ -36,7 +36,6 @@ class ProgramConfig(object):
         self.autostart = getConfigValueBool(autostart, 'autostart')
         self.autorestart = getConfigValueBool(autorestart, 'autorestart')
         self.maxrestarts = getConfigValueInt(maxrestarts, 'maxrestarts')
-        self.restart_delay_seconds = getConfigValueFloat(restart_delay_seconds, 'restart_delay_seconds')
         self.success_seconds = getConfigValueFloat(success_seconds, 'success_seconds')
         self.autopid = getConfigValueBool(autopid, 'autopid')
         self.useshell = getConfigValueBool(useshell, 'useshell')
