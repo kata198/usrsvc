@@ -15,8 +15,6 @@ __all__ = ('MonitoringConfig',)
 
 class MonitoringConfig(object):
 
-
-    # TODO: Implement monitoring
     def __init__(self, activityfile='', activityfile_limit=15, **kwargs):
         self.activityfile = activityfile
         if activityfile and activityfile[0] != '/':

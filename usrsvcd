@@ -66,6 +66,7 @@ def rereadConfig(*args, **kwargs):
         return
 
     config = config2
+    configureStdoutStderr(config.mainConfig)
     
 
 def getConfig():
@@ -139,15 +140,46 @@ def doMonitoring():
                 if doRestart is True:
                     restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False)
                     restarting.add(programName)
-            except:
-                pass
-                # If we get an exception, don't fail. Just try, try again.
+        except:
+            pass
+            # If we get an exception, don't fail. Just try, try again.
 
         time.sleep(5)
 
 
+def configureStdoutStderr(mainConfig):
+    # Configure new stdout and stderr. If there's an issue, the previous is retained, otherwise it is closed.
+    if mainConfig.usrsvcd_stdout:
+        oldstdout = sys.stdout
+        try:
+            sys.stdout = open(mainConfig.usrsvcd_stdout, 'at')
+        except:
+            sys.stderr.write('Cannot open usrsvcd_stdout ( %s ) for writing.\n' %(mainConfig.usrsvcd_stdout,))
+            return 5
+        try:
+            oldstdout.close()
+        except:
+            pass
+    
+    if mainConfig.usrsvcd_stderr:
+        oldstderr = sys.stderr
+        val = mainConfig.usrsvcd_stderr
+        if val == 'stdout':
+            sys.stderr = sys.stdout
+        else:
+            try:
+                sys.stderr = open(mainConfig.usrsvcd_stderr, 'at')
+            except:
+                sys.stderr.write('Cannot open usrsvcd_stderr ( %s ) for writing.\n' %(mainConfig.usrsvcd_stderr,))
+                return 5
+        try:
+            oldstderr.close()
+        except:
+            pass
+                
 
-# TODO: Configurable stdout/stderr file
+    return 0
+
 
 if __name__ == '__main__':
     if '--help' in sys.argv:
@@ -228,6 +260,7 @@ if __name__ == '__main__':
     if config is None:
         sys.exit(4)
 
+
     mainPidFile = config.mainConfig.pidfile
     usrsvcdProg = getUsrsvcdProg()
     if usrsvcdProg:
@@ -239,8 +272,16 @@ if __name__ == '__main__':
     if pid != 0:
         sys.exit(0)
 
-    with open(mainPidFile, 'wt') as f:
-        f.write(str(os.getpid()) + '\n')
+    status = configureStdoutStderr(config.mainConfig)
+    if status:
+        sys.exit(status)
+
+    try:
+        with open(mainPidFile, 'wt') as f:
+            f.write(str(os.getpid()) + '\n')
+    except Exception as e:
+        sys.stderr.write('Failed to write PID file ( %s ): %s\n' %(mainPidFile, str(e)))
+        sys.exit(5)
      
 
 
