@@ -123,12 +123,32 @@ def doMonitoring():
                     restarting.remove(programName)
                     continue # We can just skip here, it just completed a restart. Give it a chance to get goin'
 
+                if not programConfig.Monitoring.isMonitoringActive():
+                    continue
+
+                runningProgram = None
+                try:
+                    runningProgram = getRunningProgram(programConfig)
+                except:
+                    pass
+
+                if not runningProgram:
+                    # Program is not running, so let the main thread get it.
+                    continue
+
+                monitorAfter = programConfig.Monitoring.monitor_after
+                if monitorAfter:
+                    startTime = runningProgram.getStartTime()
+                    if startTime and (time.time() - startTime) < monitorAfter:
+                        # Program has not been running long enough to monitor, so wait.
+                        continue
+
                 doRestart = False
                 if programConfig.Monitoring.activityfile:
                     activityFile = programConfig.Monitoring.activityfile
                     try:
                         if not os.path.exists(activityFile):
-                            sys.stdout.write('Restarting %s because activity file ( %s )does not exist\n' %(programName, activityFile,))
+                            sys.stdout.write('Restarting %s because activity file ( %s ) does not exist\n' %(programName, activityFile,))
                             sys.stdout.flush()
                             doRestart = True
                         if doRestart is False:

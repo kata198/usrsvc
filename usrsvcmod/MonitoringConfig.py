@@ -15,13 +15,23 @@ __all__ = ('MonitoringConfig',)
 
 class MonitoringConfig(object):
 
-    def __init__(self, activityfile='', activityfile_limit=15, **kwargs):
+    def __init__(self, monitor_after=30,
+        activityfile='', activityfile_limit=15, 
+        **kwargs):
+
+        self.monitor_after = getConfigValueInt(monitor_after, 'monitor_after')
+
         self.activityfile = activityfile
         if activityfile and activityfile[0] != '/':
             raise ValueError('activityfile must be an absolute path.\n')
         self.activityfile_limit = getConfigValueInt(activityfile_limit, 'activityfile_limit')
         if kwargs:
             raise ValueError('Unknown configuration options in Monitoring section: %s' %(str(kwargs.keys()),))
+
+
+    def isMonitoringActive(self):
+        # "or" of all the various monitoring types.
+        return bool(self.activityfile)
 
         
     def __str__(self):

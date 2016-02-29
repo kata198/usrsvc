@@ -117,6 +117,15 @@ class Program(object):
         return prog.validateProcTitle(programConfig)
 
 
+    def getStartTime(self):
+        try:
+            return os.stat('/proc/' + str(self.pid)).st_mtime
+        except Exception as e:
+            pass
+
+        return None
+
+
     def startProgram(self, programConfig):
         useShell = programConfig.useshell
 
