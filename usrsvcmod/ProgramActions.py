@@ -9,9 +9,8 @@
     ProgramActions - Some common actions dealing with process management.
 '''
 
-import sys
-
 from .Program import Program
+from .logging import logErr, logMsg
 
 # TODO: Notification system
 
@@ -41,7 +40,7 @@ def getRunningProgram(programConfig):
         # A program is running, check if it is the RIGHT program
         isCorrectApp = prog.validateProcTitle(programConfig)
         if not isCorrectApp:
-            sys.stderr.write('Warning: Detected stale pid file for %s at %s (%d). REMOVING\n  Proctitle for %d was: %s\n' %(programName, programConfig.pidfile, prog.pid, prog.pid, prog.cmdline))
+            logErr('Warning: Detected stale pid file for %s at %s (%d). REMOVING\n  Proctitle for %d was: %s\n' %(programName, programConfig.pidfile, prog.pid, prog.pid, prog.cmdline))
             prog.removePidFile(programConfig)
             prog = None
         else:
@@ -53,7 +52,7 @@ def getRunningProgram(programConfig):
             # No PID or failed proctitle match, scan running processes
             prog = Program.createFromRunningProcesses(programConfig)
             if prog:
-                sys.stdout.write('Matched %s from running process:\n\n%s\n' %(programName, prog.__dict__))
+                logMsg('Matched %s from running process:\n\n%s\n' %(programName, prog.__dict__))
                 prog.writePidFile(programConfig)
                 return prog
 

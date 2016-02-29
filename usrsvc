@@ -5,12 +5,13 @@ import os
 import sys
 import traceback
 
+from NamedAtomicLock import NamedAtomicLock
 
 from usrsvcmod.config import config as usrsvcconfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
+from usrsvcmod.logging import logMsg, logErr
 
-from NamedAtomicLock import NamedAtomicLock
 
 def doAction(args):
     action = args[0]
@@ -21,7 +22,7 @@ def doAction(args):
             try:
                 ret2 = doAction([action, singleProgramName])
             except Exception as e:
-                sys.stderr.write('Exception (%s) trying to %s %s\n' %(str(e.__class__.__name__), action, singleProgramName))
+                logErr('Exception (%s) trying to %s %s\n' %(str(e.__class__.__name__), action, singleProgramName))
                 traceback.print_exc()
                 ret2 = 254
             if ret2 != 0:
@@ -30,7 +31,7 @@ def doAction(args):
     # TODO: Configurable lock dir?
     lock = NamedAtomicLock('.lock_usrsvc' + programName, maxLockAge=30)
     if not lock.acquire(31):
-        sys.stderr.write('Cannot acquire lock for %s. Is something else looping trying to access it? Try the command again.\n' %(programName,))
+        logErr('Cannot acquire lock for %s. Is something else looping trying to access it? Try the command again.\n' %(programName,))
         return 3
     ret = _doAction(args)
     lock.release()
@@ -44,11 +45,11 @@ def _doAction(args):
     try:
         programConfig = config.getProgramConfig(programName)
     except KeyError:
-        sys.stderr.write('No such program: %s\n' %(programName,))
+        logErr('No such program: %s\n' %(programName,))
         return 2
 
     if programConfig.enabled is False and action != 'status':
-        sys.stderr.write('Program %s is currently disabled in config. Only the "status" action is supported on disabled programs.\n' %(programName,))
+        logErr('Program %s is currently disabled in config. Only the "status" action is supported on disabled programs.\n' %(programName,))
 
     if action == 'start':
         prog = None
@@ -59,16 +60,16 @@ def _doAction(args):
 
         prog = getRunningProgram(programConfig)
         if prog is not None:
-            sys.stdout.write('Program %s is already running:\n\n%s\n' %(programName, prog.__dict__))
+            logMsg('Program %s is already running:\n\n%s\n' %(programName, prog.__dict__))
             return 0
 
         prog = Program(programConfig.pidfile)
         success = prog.startProgram(programConfig)
         if success:
-            sys.stdout.write('Started %s:\n\n%s\n' %(programName, prog.__dict__))
+            logMsg('Started %s:\n\n%s\n' %(programName, prog.__dict__))
             return 0
         else:
-            sys.stderr.write('Failed to start %s!\n' %(programName,))
+            logErr('Failed to start %s!\n' %(programName,))
             return 1
 
     elif action == 'stop':
@@ -83,13 +84,13 @@ def _doAction(args):
     elif action == 'status':
         prog = getRunningProgram(programConfig)
         if prog:
-            sys.stdout.write('%s is running:\n\n%s\n' %(programName, str(prog.__dict__)))
+            logMsg('%s is running:\n\n%s\n' %(programName, str(prog.__dict__)))
             return 0
         else:
-            sys.stderr.write('%s is NOT running\n' %(programName,))
+            logErr('%s is NOT running\n' %(programName,))
             return 1
     else:
-        sys.stderr.write('Unknown action: %s\n' %(action,))
+        logErr('Unknown action: %s\n' %(action,))
         return 2
         
 

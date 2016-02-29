@@ -15,7 +15,7 @@ from collections import defaultdict
 from usrsvcmod.config import config as usrsvcconfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
-
+from usrsvcmod.logging import logMsg, logErr
 
 def printUsage():
     sys.stderr.write('''Usage: usrsvcd (Optional: [action])
@@ -51,7 +51,7 @@ def handle_sigterm(*args, **kwargs):
     global keepGoing
     keepGoing = False
 
-    sys.stderr.write('usrsvcd got SIGTERM, shutting down.\n')
+    logErr('usrsvcd got SIGTERM, shutting down.\n')
     signal.signal(signal.SIGTERM, signal.SIG_IGN)
     return True
  
@@ -59,7 +59,7 @@ def handle_sigterm(*args, **kwargs):
 def rereadConfig(*args, **kwargs):
     global config
 
-    sys.stdout.write('Got SIGUSR1, reprocessing config.\n')
+    logMsg('Got SIGUSR1, reprocessing config.\n')
 
     config2 = getConfig()
     if not config2:
@@ -73,14 +73,14 @@ def getConfig():
     configPath = os.environ['HOME'] + '/usrsvc.cfg'
 
     if not os.path.exists(configPath) or not os.access(configPath, os.R_OK):
-        sys.stderr.write('Missing config file: %s\n' %(configPath,))
+        logErr('Missing config file: %s\n' %(configPath,))
         return None
 
     config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
     try:
         config.parse()
     except ValueError as e:
-        sys.stderr.write('Error in configuration: %s\n' %(str(e),))
+        logErr('Error in configuration: %s\n' %(str(e),))
         return None
 
     return config
@@ -148,15 +148,13 @@ def doMonitoring():
                     activityFile = programConfig.Monitoring.activityfile
                     try:
                         if not os.path.exists(activityFile):
-                            sys.stdout.write('Restarting %s because activity file ( %s ) does not exist\n' %(programName, activityFile,))
-                            sys.stdout.flush()
+                            logMsg('Restarting %s because activity file ( %s ) does not exist\n' %(programName, activityFile,))
                             doRestart = True
                         if doRestart is False:
                             lastModified = os.stat(activityFile).st_mtime
                             threshold = time.time() - programConfig.Monitoring.activityfile_limit
                             if lastModified < threshold:
-                                sys.stdout.write('Restarting %s because it has not modified activity file ( %s ) in %d seconds. Limit is %d.\n' %(programName, activityFile, int(threshold - lastModified), programConfig.Monitoring.activityfile_limit))
-                                sys.stdout.flush()
+                                logMsg('Restarting %s because it has not modified activity file ( %s ) in %d seconds. Limit is %d.\n' %(programName, activityFile, int(threshold - lastModified), programConfig.Monitoring.activityfile_limit))
                                 doRestart = True
                     except:
                         # We got an exception, just try again.
@@ -178,7 +176,7 @@ def configureStdoutStderr(mainConfig):
         try:
             sys.stdout = open(mainConfig.usrsvcd_stdout, 'at')
         except:
-            sys.stderr.write('Cannot open usrsvcd_stdout ( %s ) for writing.\n' %(mainConfig.usrsvcd_stdout,))
+            logErr('Cannot open usrsvcd_stdout ( %s ) for writing.\n' %(mainConfig.usrsvcd_stdout,))
             return 5
         try:
             oldstdout.close()
@@ -194,7 +192,7 @@ def configureStdoutStderr(mainConfig):
             try:
                 sys.stderr = open(mainConfig.usrsvcd_stderr, 'at')
             except:
-                sys.stderr.write('Cannot open usrsvcd_stderr ( %s ) for writing.\n' %(mainConfig.usrsvcd_stderr,))
+                logErr('Cannot open usrsvcd_stderr ( %s ) for writing.\n' %(mainConfig.usrsvcd_stderr,))
                 return 5
         try:
             oldstderr.close()
@@ -213,7 +211,7 @@ if __name__ == '__main__':
 
     args = sys.argv[1:]
     if len(args) > 1:
-        sys.stderr.write('Too many arguments.\n\n')
+        logErr('Too many arguments.\n\n')
         printUsage()
         sys.exit(1)
     
@@ -228,29 +226,29 @@ if __name__ == '__main__':
         elif arg == 'status':
             config = getConfig()
             if not config:
-                sys.stderr.write('Error in config, cannot check status.\n')
+                logErr('Error in config, cannot check status.\n')
                 sys.exit(254)
             usrsvcdProg = getUsrsvcdProg()
             if not usrsvcdProg:
-                sys.stderr.write('usrsvcd is not running.\n')
+                logErr('usrsvcd is not running.\n')
                 sys.exit(1)
-            sys.stdout.write('usrsvcd is running:\n\n%s\n' %(str(usrsvcdProg),))
+            logMsg('usrsvcd is running:\n\n%s\n' %(str(usrsvcdProg),))
             sys.exit(0)
         elif arg == 'reread':
             config = getConfig()
             if not config:
-                sys.stderr.write('Error in config, cannot continue.\n')
+                logErr('Error in config, cannot continue.\n')
                 sys.exit(254)
             usrsvcdProg = getUsrsvcdProg()
             if not usrsvcdProg:
-                sys.stderr.write('usrsvcd is not running.\n')
+                logErr('usrsvcd is not running.\n')
                 sys.exit(0) # Not an error condition, because the changes will be applied whenever usrsvcd is started.
             os.kill(usrsvcdProg.pid, signal.SIGUSR1)
             sys.exit(0)
         elif arg == 'restart':
             config = getConfig()
             if not config:
-                sys.stderr.write('Error in config, cannot continue.\n')
+                logErr('Error in config, cannot continue.\n')
                 sys.exit(254)
             usrsvcdProg = getUsrsvcdProg()
             if usrsvcdProg:
@@ -259,7 +257,7 @@ if __name__ == '__main__':
                 except:
                     # could not send sigterm?
                     if os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
-                        sys.stderr.write('Cannot terminate existing usrsvcd process:\n\n%s\n' %(str(usrsvcdProg),))
+                        logErr('Cannot terminate existing usrsvcd process:\n\n%s\n' %(str(usrsvcdProg),))
                         sys.exit(1)
 
                 # Wait for process to die cleanly.
@@ -288,7 +286,7 @@ if __name__ == '__main__':
     mainPidFile = config.mainConfig.pidfile
     usrsvcdProg = getUsrsvcdProg()
     if usrsvcdProg:
-        sys.stderr.write('usrsvcd is already running:\n\n%s\n' %(str(usrsvcdProg),))
+        logErr('usrsvcd is already running:\n\n%s\n' %(str(usrsvcdProg),))
         sys.exit(1)
 
     # Ok, no other process is running, we are good to go. Fork and exit parent. Child continues.
@@ -304,7 +302,7 @@ if __name__ == '__main__':
         with open(mainPidFile, 'wt') as f:
             f.write(str(os.getpid()) + '\n')
     except Exception as e:
-        sys.stderr.write('Failed to write PID file ( %s ): %s\n' %(mainPidFile, str(e)))
+        logErr('Failed to write PID file ( %s ): %s\n' %(mainPidFile, str(e)))
         sys.exit(5)
      
 
@@ -370,8 +368,7 @@ if __name__ == '__main__':
                 if programConfig.maxrestarts and numStartAttempts[programName] >= programConfig.maxrestarts:
                     if numStartAttempts[programName] == programConfig.maxrestarts:
                         # If we equal this number, this is the first time we have exceeded max restarts.
-                        sys.stdout.write('%s has reached the maximum number of restarts %d. Further restarts will not be attempted until the process is seen running again (so manually fix, and run "usrsvc start %s").\n' %(programName, programConfig.maxrestarts, programName))
-                        sys.stdout.flush()
+                        logMsg('%s has reached the maximum number of restarts %d. Further restarts will not be attempted until the process is seen running again (so manually fix, and run "usrsvc start %s").\n' %(programName, programConfig.maxrestarts, programName))
                         numStartAttempts[programName] += 1
                     continue
 
@@ -380,20 +377,17 @@ if __name__ == '__main__':
 
                 if programConfig.autostart is True and programWasStarted[programName] is False:
                     # Process was not running when we started, and autostart is True, so start it.
-                    sys.stdout.write("%s was not running and autostart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
-                    sys.stdout.flush()
+                    logMsg("%s was not running and autostart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
                     programWasStarted[programName] = True
                     doStart = True
                 elif programConfig.autorestart is True and (programName in programWasSeenRunning or programWasStarted[programName] is True):
                     # We saw this process running at least once, so autorestart should apply.
                     if programConfig.restart_delay:
                         if programName in programLastRestartAttemptAt:
-                            sys.stdout.write('[%s] - last restart = %f   delay time = %f\n' %(programName, programLastRestartAttemptAt[programName], (time.time() - programConfig.restart_delay)))
-                            sys.stdout.flush()
+                            logMsg('[%s] - last restart = %f   delay time = %f\n' %(programName, programLastRestartAttemptAt[programName], (time.time() - programConfig.restart_delay)))
                             if programLastRestartAttemptAt[programName] > (time.time() - programConfig.restart_delay):
                                 continue
-                    sys.stdout.write("%s has stopped running, and autorestart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
-                    sys.stdout.flush()
+                    logMsg("%s has stopped running, and autorestart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
                     doStart = True
                     isRestart = True
 
@@ -407,7 +401,7 @@ if __name__ == '__main__':
             except:
 #            except Exception as e:
             
-                #sys.stderr.write('GOT EXCEPTION: %s\n' %(str(e),))
+                #logErr('GOT EXCEPTION: %s\n' %(str(e),))
                 # If we got a non-specific exception, assume something happened like something restarted the process outside of this loop, and ignore it.
                 pass
 
