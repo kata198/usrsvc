@@ -16,6 +16,7 @@ from usrsvcmod.config import config as usrsvcconfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.logging import logMsg, logErr
+from usrsvcmod.debug import isDebugEnabled, toggleDebug
 
 def printUsage():
     sys.stderr.write('''Usage: usrsvcd (Optional: [action])
@@ -118,7 +119,10 @@ def doMonitoring():
                         if restartProcesses[programName].poll() is None:
                             continue
                     except:
-                        pass
+                        if isDebugEnabled():
+                            logErr('DEBUG: Got exception in monitoring polling %s: %s\n' %(programName, str(e),))
+                            traceback.print_exc()
+
                     del restartProcesses[programName]
                     restarting.remove(programName)
                     continue # We can just skip here, it just completed a restart. Give it a chance to get goin'
@@ -163,8 +167,10 @@ def doMonitoring():
                     restarting.add(programName)
                     restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
         except:
-            pass
             # If we get an exception, don't fail. Just try, try again.
+            if isDebugEnabled():
+                logErr('DEBUG: Got exception in monitoring main loop: %s\nlocals:\n%s\n' %(str(e), str(locals())))
+                traceback.print_exc()
 
         time.sleep(5)
 
@@ -210,6 +216,10 @@ if __name__ == '__main__':
 
 
     args = sys.argv[1:]
+    if '--debug' in args:
+        args.remove('--debug')
+        toggleDebug(True)
+
     if len(args) > 1:
         logErr('Too many arguments.\n\n')
         printUsage()
@@ -398,14 +408,14 @@ if __name__ == '__main__':
                         programLastRestartAttemptAt[programName] = time.time()
 
                     startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
-            except:
-#            except Exception as e:
-            
-                #logErr('GOT EXCEPTION: %s\n' %(str(e),))
+            except Exception as e:
                 # If we got a non-specific exception, assume something happened like something restarted the process outside of this loop, and ignore it.
+                if isDebugEnabled():
+                    logErr('DEBUG: Got global exception on main usrsvcd loop: %s\nlocals:\n%s\n' %(str(e), str(locals(), )) )
+                    traceback.print_exc()
                 pass
 
 
-        time.sleep(2) #TODO: Configurable poll time
+        time.sleep(2) 
     
     monitoringThread.join()
