@@ -113,8 +113,12 @@ def doMonitoring():
             programConfigs = config.getProgramConfigs()
             for programName, programConfig in programConfigs.items():
                 if programName in restartProcesses:
-                    if restartProcesses[programName].poll() is None:
-                        continue
+                    try:
+                        # Try/except here, incase an OOM or otherwise breaks the poll, we hold on tight.
+                        if restartProcesses[programName].poll() is None:
+                            continue
+                    except:
+                        pass
                     del restartProcesses[programName]
                     restarting.remove(programName)
                     continue # We can just skip here, it just completed a restart. Give it a chance to get goin'
@@ -138,8 +142,8 @@ def doMonitoring():
                         # We got an exception, just try again.
                         continue
                 if doRestart is True:
-                    restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
                     restarting.add(programName)
+                    restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
         except:
             pass
             # If we get an exception, don't fail. Just try, try again.
@@ -292,9 +296,10 @@ if __name__ == '__main__':
 #    config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
 #    config.parse()
 
-    # TODO: processWasStarted and processWasSeenRunning may be able to be consolidated into one variable.
-    processWasStarted = {}
-    processWasSeenRunning = set()
+    # TODO: programWasStarted and programWasSeenRunning may be able to be consolidated into one variable.
+    programWasStarted = {}
+    programWasSeenRunning = set()
+    programLastRestartAttemptAt = {}
 
     # Number of start attempts per app. Resets to 0 after a successful start.
     numStartAttempts = defaultdict(int)
@@ -330,13 +335,13 @@ if __name__ == '__main__':
                     pass
 
                 # Record if we found this program started or stopped, for purposes of "autostart" and "autorestart"
-                if programName not in processWasStarted:
-                    processWasStarted[programName] = bool(prog is not None)
+                if programName not in programWasStarted:
+                    programWasStarted[programName] = bool(prog is not None)
 
                 if prog is not None: 
                     # Program is running, nothing to see here, move along.
-                    if programName not in processWasSeenRunning:
-                        processWasSeenRunning.add(programName)
+                    if programName not in programWasSeenRunning:
+                        programWasSeenRunning.add(programName)
                     # Reset our "failed start" counter
                     numStartAttempts[programName] = 0
                     continue
@@ -351,25 +356,38 @@ if __name__ == '__main__':
                     continue
 
                 doStart = False
+                isRestart = False
 
-                if programConfig.autostart is True and processWasStarted[programName] is False:
+                if programConfig.autostart is True and programWasStarted[programName] is False:
                     # Process was not running when we started, and autostart is True, so start it.
                     sys.stdout.write("%s was not running and autostart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
                     sys.stdout.flush()
-                    processWasStarted[programName] = True
+                    programWasStarted[programName] = True
                     doStart = True
-                elif programConfig.autorestart is True and (programName in processWasSeenRunning or processWasStarted[programName] is True):
+                elif programConfig.autorestart is True and (programName in programWasSeenRunning or programWasStarted[programName] is True):
                     # We saw this process running at least once, so autorestart should apply.
+                    if programConfig.restart_delay:
+                        if programName in programLastRestartAttemptAt:
+                            sys.stdout.write('[%s] - last restart = %f   delay time = %f\n' %(programName, programLastRestartAttemptAt[programName], (time.time() - programConfig.restart_delay)))
+                            sys.stdout.flush()
+                            if programLastRestartAttemptAt[programName] > (time.time() - programConfig.restart_delay):
+                                continue
                     sys.stdout.write("%s has stopped running, and autorestart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
                     sys.stdout.flush()
                     doStart = True
+                    isRestart = True
 
                 if doStart is True and not programName in restarting:
                     numStartAttempts[programName] += 1
-                    # TODO in order to implement restartdelay, launching this subprocess needs to go into a thread. Or probably a better option,
-                    #  is to not use the subprocess module and just os.fork -> exec, and incorporate the sleep therein,
+                    if isRestart is True:
+                        # We should always do this, whether or not restart_delay is set now, for config-reload reasons.
+                        programLastRestartAttemptAt[programName] = time.time()
+
                     startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
             except:
+#            except Exception as e:
+            
+                #sys.stderr.write('GOT EXCEPTION: %s\n' %(str(e),))
                 # If we got a non-specific exception, assume something happened like something restarted the process outside of this loop, and ignore it.
                 pass
 
