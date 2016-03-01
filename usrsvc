@@ -24,6 +24,7 @@
 
 
 import os
+import signal
 import sys
 import traceback
 
@@ -114,7 +115,8 @@ def _doAction(args):
     else:
         logErr('Unknown action: %s\n' %(action,))
         return 2
-        
+ 
+
 
 
 def printUsage():
@@ -128,6 +130,9 @@ if __name__ == '__main__':
 
     config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
     config.parse()
+
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     sys.exit(doAction(sys.argv[1:]))
 
