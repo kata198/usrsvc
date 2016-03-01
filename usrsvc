@@ -30,7 +30,7 @@ import traceback
 
 from NamedAtomicLock import NamedAtomicLock
 
-from usrsvcmod.config import config as usrsvcconfig
+from usrsvcmod.UsrsvcConfig import UsrsvcConfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.logging import logMsg, logErr
@@ -128,7 +128,7 @@ if __name__ == '__main__':
         printUsage()
         sys.exit(1)
 
-    config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
+    config = UsrsvcConfig(os.environ['HOME'] + '/usrsvc.cfg')
     config.parse()
 
     signal.signal(signal.SIGTERM, signal.SIG_IGN)

@@ -20,7 +20,7 @@
 
 
 
-    'config' is the main config class used within usrsvc
+    'UsrsvcConfig' is the main config class used within usrsvc
 '''
 
 import copy
@@ -32,9 +32,9 @@ from configobj import ConfigObj
 from .MainConfig import MainConfig
 from .ProgramConfig import ProgramConfig
 
-__all__ = ('config', )
+__all__ = ('UsrsvcConfig', )
 
-class config(object):
+class UsrsvcConfig(object):
 
     def __init__(self, mainConfigFile):
         self.mainConfigFile = mainConfigFile

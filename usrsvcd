@@ -35,7 +35,7 @@ import traceback
 
 from collections import defaultdict
 
-from usrsvcmod.config import config as usrsvcconfig
+from usrsvcmod.UsrsvcConfig import UsrsvcConfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.logging import logMsg, logErr
@@ -111,7 +111,7 @@ def getConfig():
         logErr('Missing config file: %s\n' %(configPath,))
         return None
 
-    config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
+    config = UsrsvcConfig(os.environ['HOME'] + '/usrsvc.cfg')
     try:
         config.parse()
     except ValueError as e:
@@ -411,7 +411,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGCHLD, signal.SIG_IGN)
     signal.signal(signal.SIGUSR1, rereadConfig)
     signal.signal(signal.SIGTERM, handle_sigterm)
-#    config = usrsvcconfig(os.environ['HOME'] + '/usrsvc.cfg')
+#    config = UsrsvcConfig(os.environ['HOME'] + '/usrsvc.cfg')
 #    config.parse()
 
     # TODO: programWasStarted and programWasSeenRunning may be able to be consolidated into one variable.
