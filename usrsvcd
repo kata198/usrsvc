@@ -394,9 +394,15 @@ if __name__ == '__main__':
     if pid != 0:
         sys.exit(0)
 
+    logMsg('usrsvcd started as pid: %d\n' %(os.getpid(),))
+
     status = configureStdoutStderr(config.mainConfig)
     if status:
         sys.exit(status)
+
+    if config.mainConfig.usrsvcd_stdout:
+        # We changed stdout, log there too.
+        logMsg('usrsvcd started as pid: %d\n' %(os.getpid(),))
 
     try:
         with open(mainPidFile, 'wt') as f:
