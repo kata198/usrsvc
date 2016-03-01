@@ -1,4 +1,15 @@
 #!/usr/bin/env python
+'''
+    Copyright (c) 2016 Tim Savannah All Rights Reserved.
+    This software is licensed under the terms of the GPLv2. This may change at my discretion.
+
+    You should have received a copy of this with the source distribution as LICENSE,
+
+    The most current license can be found at
+    https://github.com/kata198/usrsvc/LICENSE
+
+    usrsvcd is the daemon associated with usrsvc. It keeps processes running, handles monitoring, etc.
+'''
 
 
 
@@ -49,6 +60,9 @@ global restarting
 restarting = set()
 
 def handle_sigterm(*args, **kwargs):
+    '''
+        handle_sigterm - SIGTERM handler. Sets the "keepGoing" global to False, which gracefully terminates everything after current opset.
+    '''
     global keepGoing
     keepGoing = False
 
@@ -58,6 +72,10 @@ def handle_sigterm(*args, **kwargs):
  
 
 def rereadConfig(*args, **kwargs):
+    '''
+        rereadConfig - handler for SIGUSR1. Rereads the config, and if it all parses updates the global "config"
+            since each "main loop" iteration should reread from that variable, this will affect the next opset.
+    '''
     global config
 
     logMsg('Got SIGUSR1, reprocessing config.\n')
@@ -71,6 +89,10 @@ def rereadConfig(*args, **kwargs):
     
 
 def getConfig():
+    '''
+        getConfig - Parses and returns the config object.
+            If parsing error, an error is logged and None is returned.
+    '''
     configPath = os.environ['HOME'] + '/usrsvc.cfg'
 
     if not os.path.exists(configPath) or not os.access(configPath, os.R_OK):
@@ -87,6 +109,10 @@ def getConfig():
     return config
     
 def getUsrsvcdProg():
+    '''
+        getUsrsvcdProg - get the Program object representing usrsvcd, as found in the pid file.
+            None if no match.
+    '''
     global config
 
     mainPidFile = config.mainConfig.pidfile
@@ -100,15 +126,138 @@ def getUsrsvcdProg():
     return None
 
 
+def configureStdoutStderr(mainConfig):
+    '''
+        configureStdoutStderr - Configures new stdout and stderr based on the "MainConfig"
+            If there's an issue, the previous is retained, otherwise it is closed.
+
+            @param mainConfig - The "Main" config (config.mainConfig) object
+    '''
+    # Configure new stdout and stderr. If there's an issue, the previous is retained, otherwise it is closed.
+    if mainConfig.usrsvcd_stdout:
+        oldstdout = sys.stdout
+        try:
+            sys.stdout = open(mainConfig.usrsvcd_stdout, 'at')
+        except:
+            logErr('Cannot open usrsvcd_stdout ( %s ) for writing.\n' %(mainConfig.usrsvcd_stdout,))
+            return 5
+        try:
+            oldstdout.close()
+        except:
+            pass
+    
+    if mainConfig.usrsvcd_stderr:
+        oldstderr = sys.stderr
+        val = mainConfig.usrsvcd_stderr
+        if val == 'stdout':
+            sys.stderr = sys.stdout
+        else:
+            try:
+                sys.stderr = open(mainConfig.usrsvcd_stderr, 'at')
+            except:
+                logErr('Cannot open usrsvcd_stderr ( %s ) for writing.\n' %(mainConfig.usrsvcd_stderr,))
+                return 5
+        try:
+            oldstderr.close()
+        except:
+            pass
+                
+
+    return 0
+
+def handleArg(arg):
+    '''
+        handleArg - Handle if we started the application with a single argument.
+    '''
+    if arg == 'checkconfig':
+        config = getConfig()
+        if not config:
+            return 1
+
+        return 0
+
+    elif arg == 'status':
+        config = getConfig()
+        if not config:
+            logErr('Error in config, cannot check status.\n')
+            return 254
+        usrsvcdProg = getUsrsvcdProg()
+        if not usrsvcdProg:
+            logErr('usrsvcd is not running.\n')
+            return 1
+        logMsg('usrsvcd is running:\n\n%s\n' %(str(usrsvcdProg),))
+        return 0
+
+    elif arg == 'reread':
+        config = getConfig()
+        if not config:
+            logErr('Error in config, cannot continue.\n')
+            return 254
+        usrsvcdProg = getUsrsvcdProg()
+        if not usrsvcdProg:
+            logErr('usrsvcd is not running.\n')
+            return 0 # Not an error condition, because the changes will be applied whenever usrsvcd is started.
+        os.kill(usrsvcdProg.pid, signal.SIGUSR1)
+        return 0
+
+    elif arg == 'restart':
+        config = getConfig()
+        if not config:
+            logErr('Error in config, cannot continue.\n')
+            return 254
+        usrsvcdProg = getUsrsvcdProg()
+        if usrsvcdProg:
+            try:
+                os.kill(usrsvcdProg.pid, signal.SIGTERM)
+            except:
+                # could not send sigterm?
+                if os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
+                    logErr('Cannot terminate existing usrsvcd process:\n\n%s\n' %(str(usrsvcdProg),))
+                    return 1
+
+            # Wait for process to die cleanly.
+            time.sleep(.1)
+            now = time.time()
+            maxWait = now + 5.0
+            while os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
+                time.sleep(.1)
+                if time.time() > maxWait:
+                    # Took too long, send it sig kill.
+                    try:
+                        os.kill(usrsvcdProg.pid, signal.SIGKILL)
+                    except:
+                        pass
+                    break
+        subprocess.Popen(['usrsvcd'], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
+        return 0
+    else:
+        logErr('Unknown command: %s\n' %(arg,))
+        return 1
+        
+
+
+
 def doMonitoring():
+    '''
+        doMonitoring - Thread start for monitoring thread.
+
+            This thread can block restarts on the global handler, as its actions are preferred. This is based on the global set, "restarting"
+
+            Otherwise, it starts with a short delay (to let the main thread pick up), then runs through configured programs performing monitoring operations.
+    '''
     global config
     global keepGoing
     global restarting
 
     # Wait a bit at first for us to roll through the apps
-    time.sleep(8)
+#    time.sleep(8)
+    for i in range(8):
+        time.sleep(1)
+        if keepGoing is False:
+            return
     restartProcesses = {}
 
+    # TODO: We can be extra paranoid and have restarting be a dict of programName -> time. After a timeout, we can assert there was some unrecoverable issue with the restart operation and not continue to block the main thread.
     while keepGoing is True:
         try:
             programConfigs = config.getProgramConfigs()
@@ -147,6 +296,7 @@ def doMonitoring():
                         # Program has not been running long enough to monitor, so wait.
                         continue
 
+                # TODO: When we get more monitoring types, these actions should be broken into modules.
                 doRestart = False
                 if programConfig.Monitoring.activityfile:
                     activityFile = programConfig.Monitoring.activityfile
@@ -163,6 +313,7 @@ def doMonitoring():
                     except:
                         # We got an exception, just try again.
                         continue
+
                 if doRestart is True:
                     restarting.add(programName)
                     restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
@@ -172,41 +323,19 @@ def doMonitoring():
                 logErr('DEBUG: Got exception in monitoring main loop: %s\nlocals:\n%s\n' %(str(e), str(locals())))
                 traceback.print_exc()
 
-        time.sleep(5)
+        # Break out the 5 second sleep into 2+2+1, so we can gracefully terminate quicker.
+        #time.sleep(5)
+        time.sleep(2)
+        if keepGoing is False:
+            break
+        time.sleep(2)
+        if keepGoing is False:
+            break
+        time.sleep(1)
+
+    return
 
 
-def configureStdoutStderr(mainConfig):
-    # Configure new stdout and stderr. If there's an issue, the previous is retained, otherwise it is closed.
-    if mainConfig.usrsvcd_stdout:
-        oldstdout = sys.stdout
-        try:
-            sys.stdout = open(mainConfig.usrsvcd_stdout, 'at')
-        except:
-            logErr('Cannot open usrsvcd_stdout ( %s ) for writing.\n' %(mainConfig.usrsvcd_stdout,))
-            return 5
-        try:
-            oldstdout.close()
-        except:
-            pass
-    
-    if mainConfig.usrsvcd_stderr:
-        oldstderr = sys.stderr
-        val = mainConfig.usrsvcd_stderr
-        if val == 'stdout':
-            sys.stderr = sys.stdout
-        else:
-            try:
-                sys.stderr = open(mainConfig.usrsvcd_stderr, 'at')
-            except:
-                logErr('Cannot open usrsvcd_stderr ( %s ) for writing.\n' %(mainConfig.usrsvcd_stderr,))
-                return 5
-        try:
-            oldstderr.close()
-        except:
-            pass
-                
-
-    return 0
 
 
 if __name__ == '__main__':
@@ -226,66 +355,13 @@ if __name__ == '__main__':
         sys.exit(1)
     
     if args:
-        # They provided an action
-        arg = args[0]
-        if arg == 'checkconfig':
-            config = getConfig()
-            if not config:
-                sys.exit(1)
-            sys.exit(0)
-        elif arg == 'status':
-            config = getConfig()
-            if not config:
-                logErr('Error in config, cannot check status.\n')
-                sys.exit(254)
-            usrsvcdProg = getUsrsvcdProg()
-            if not usrsvcdProg:
-                logErr('usrsvcd is not running.\n')
-                sys.exit(1)
-            logMsg('usrsvcd is running:\n\n%s\n' %(str(usrsvcdProg),))
-            sys.exit(0)
-        elif arg == 'reread':
-            config = getConfig()
-            if not config:
-                logErr('Error in config, cannot continue.\n')
-                sys.exit(254)
-            usrsvcdProg = getUsrsvcdProg()
-            if not usrsvcdProg:
-                logErr('usrsvcd is not running.\n')
-                sys.exit(0) # Not an error condition, because the changes will be applied whenever usrsvcd is started.
-            os.kill(usrsvcdProg.pid, signal.SIGUSR1)
-            sys.exit(0)
-        elif arg == 'restart':
-            config = getConfig()
-            if not config:
-                logErr('Error in config, cannot continue.\n')
-                sys.exit(254)
-            usrsvcdProg = getUsrsvcdProg()
-            if usrsvcdProg:
-                try:
-                    os.kill(usrsvcdProg.pid, signal.SIGTERM)
-                except:
-                    # could not send sigterm?
-                    if os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
-                        logErr('Cannot terminate existing usrsvcd process:\n\n%s\n' %(str(usrsvcdProg),))
-                        sys.exit(1)
-
-                # Wait for process to die cleanly.
-                time.sleep(.1)
-                now = time.time()
-                maxWait = now + 5.0
-                while os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
-                    time.sleep(.1)
-                    if time.time() > maxWait:
-                        # Took too long, send it sig kill.
-                        try:
-                            os.kill(usrsvcdProg.pid, signal.SIGKILL)
-                        except:
-                            pass
-                        break
-            subprocess.Popen(['usrsvcd'], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
-            sys.exit(0)
-    # END provided action
+        # They provided an action. This function will return the exit code
+        try:
+            sys.exit(handleArg(args[0]))
+        except Exception as e:
+            logErr('Got exception handling arg: %s\n' %(str(e),))
+            traceback.print_exc()
+            sys.exit(1)
             
             
     config = getConfig()
@@ -336,6 +412,8 @@ if __name__ == '__main__':
 
     monitoringThread = threading.Thread(target=doMonitoring)
     monitoringThread.start()
+
+    ### START MAIN LOOP  ###
     while keepGoing is True:
         programConfigs = config.getProgramConfigs()
         for programName, programConfig in programConfigs.items():
@@ -417,5 +495,8 @@ if __name__ == '__main__':
 
 
         time.sleep(2) 
-    
+
+    ### END MAIN LOOP  ###
+ 
+    # Join any threads, which should all be exiting when "keepGoing" switches to False.   
     monitoringThread.join()

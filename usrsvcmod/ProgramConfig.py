@@ -1,9 +1,10 @@
 '''
     Copyright (c) 2016 Tim Savannah All Rights Reserved.
-    This software is licensed under the terms of the GPLv2.
+    This software is licensed under the terms of the GPLv2. This may change at my discretion.
 
     You should have received a copy of this with the source distribution as LICENSE,
-    otherwise the most up to date license can be found at
+
+    The most current license can be found at
     https://github.com/kata198/usrsvc/LICENSE
 
     'ProgramConfig' represents a single program config
