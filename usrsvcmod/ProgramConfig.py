@@ -32,17 +32,61 @@ from .MonitoringConfig import MonitoringConfig
 __all__ = ('ProgramConfig', )
 
 class ProgramConfig(object):
+    '''
+        ProgramConfig - The configuration for a Program. [Program:TheName] would be named "TheName"
+    '''
 
     def __init__(self, name, 
             command=None, pidfile=None, autostart=True,
             autorestart=True, maxrestarts=0, restart_delay=0,
             autopid=True, useshell=True, proctitle_re=None, 
-            success_seconds=2, term_to_kill_seconds=3, scan_for_process=False,
+            success_seconds=2.0, term_to_kill_seconds=3.0, scan_for_process=False,
             stdout=None, stderr=None,
             enabled=True,
             inherit_env=True, Env=None, Monitoring=None,
             defaults=None,
             **kwargs):
+        '''
+            name - Determined from section name [Program:TheName] has "TheName"
+
+            Params:
+
+                * command - REQUIRED - Full command and arguments to execute. If #useshell# is True, this can contain shell-isms
+                * useshell - If True, will invoke your application through a shell. You can use shell expressions in this mode. Use "False" if you don't need this.
+                * pidfile - REQUIRED - Path to a pidfile. If #autopid# is False, your app must write its pid to this file. Otherwise, usrsvcd will mangage it, even with #scan_for_process# or other methods.
+                * enabled - Boolean, default True. Set to "False" to disable the program from being managed by "usrsvcd"
+                * autopid - Default True, boolean. If True, "usrsvc" and "usrsvcd" will write the pid of the launched program to the pidfile, i.e. managed. If your application forks-and-exits, you can set this to FAlse and write your own pid, or use #scan_for_process#
+                * scan_for_process - Default False, boolean. If True, "usrsvc" and "usrsvcd" will, in the absense of a pidfile which matches with #proctitle_re#, use #proctitle_re# and scan running processes for the application. This can find applications even when the pidfile has gone missing.
+                * proctitle_re - None or a regular expression which will match the proctitle (can be seen as last col in "ps auxww).  If none provided, a default wherein the command and arguments are used, will work in almost all instances. Some applications modify their proctitle, and you may need to use this to match them.
+
+            
+                * autostart - Default True, boolean value if program should be started if not already running when "usrsvcd" is invoked
+                * autorestart - Default True, boolean value if program should be restarted if it stopped while "usrsvcd" is running
+                * maxrestarts - Default 0, integer on the max number of times usrsvcd will try to automatically restart the application by "usrsvcd". If it is seen running again naturally, this counter will reset. 0 means unlimited restarts.
+                * restart_delay - Default 0, integer on the miminum number of seconds between a failing "start" and the next "restart" attmept by "usrsvcd". 
+                * success_seconds - Default 2, Float on the number of seconds the application must be running for "usrsvc" to consider it successfully started.
+                * term_to_kill_seconds : Default 3, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
+
+
+
+                NOTE: The following stdout/stderr are opened in "append" mode always. 
+                * stdout - REQUIRED - Absolute path to a file to be used for stdout
+                * stderr - Absolute path to a file to be used for stderr, or "stdout" to redirect to stdout. Default is to redirect stderr to stdout. May be same filename as stdout.
+                * defaults - This can reference a "DefaultSettings" section defined elsewhere, i.e. to reference [DefaultSettings:MySettings] use "defaults=MySettings". If provided, this Program will inherit the settings defined in the DefaultSettings as the defaults. Anything provided explicitly in this Program will override those found in the defaults.
+                * inherit_env - Boolean, default True. If True, will inherit the env from "usrsvc" or "usrsvcd". Otherwise, will only use the Env as defined in the Env subsection.
+
+                Supports the following subsections:
+
+                [[Monitor]]
+                  - See MonitoringConfig
+
+                [[Env]]
+                  key=value
+
+                pairs for environment variables. Affected by #inherit_env above.
+        '''
+
+
         self.command = command
         self.pidfile = pidfile
         if not pidfile or pidfile[0] != '/':

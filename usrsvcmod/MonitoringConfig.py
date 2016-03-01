@@ -27,10 +27,20 @@ from .configcommon import getConfigValueBool, getConfigValueInt, getConfigValueF
 __all__ = ('MonitoringConfig',)
 
 class MonitoringConfig(object):
+    '''
+        MonitoringConfig - The [[Monitor]] subsection of a Program
+    '''
 
     def __init__(self, monitor_after=30,
-        activityfile='', activityfile_limit=15, 
+        activityfile='', activityfile_limit=120,
         **kwargs):
+        '''
+            Config values:
+
+            monitor_after - Minimum number of seconds that program needs to be running before monitoring will begin. Default 30. 0 disables this feature.
+            activityfile - File or Directory which must be modified every #activityfile_limit# seconds, or program will be restarted. Default undefined/empty string disables this.
+            activityfile_limit - If activityfile is defined, this is the number of seconds is the maximum that can go between modifications of the provided #activityfile# before triggering a restart.
+        '''
 
         self.monitor_after = getConfigValueInt(monitor_after, 'monitor_after')
 

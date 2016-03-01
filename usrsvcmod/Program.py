@@ -31,9 +31,24 @@ import time
 __all__ = ('Program',)
 
 class Program(object):
+    '''
+        Program - defines a program, running or not.
+    '''
 
 
     def __init__(self, pidfile=None, pid=None, cmdline=None, executable=None, args=None, running=False):
+        '''
+            Create a program.
+
+            @param pidfile - <str/None> - path to pidfile
+            @param pid - <int/None> - pid of program
+            @param cmdline - <str/None> - cmdline of program
+            @param executable - <str/None> - executable or None
+            @param args - <list/None> - List of args, or None.
+            @param running - <bool> - True/False.
+
+            Should not be created direcly, use one of the static methods to create this.
+        '''
         self.pid = pid or None
         # Note: careful with the cmdline/executable/args, maybe not all being set. Maybe need to ensure with a helper method.
         self.cmdline = cmdline or None
@@ -44,11 +59,26 @@ class Program(object):
         
 
     def isRunning(self):
+        '''
+            isRunning - returns the "running" flag. This only tests if it was running when created.
+
+            @see isProgramRunning to do an active check if the program is running.
+        '''
         # TODO: get rid of this method
         return bool(self.running)
 
     @staticmethod
     def _getProcCmdline(pid):
+        '''
+            _getProcCmdline - Gets the /proc/$pid/cmdline , split into string, executable, and args, for a given pid.
+
+            @return - dict {
+                cmdline - string of commandline
+                executable - string of executable
+                args - list of arguments
+                }
+
+        '''
         with open('/proc/%d/cmdline' %(pid,), 'rb') as f:
             cmdlineContents = f.read()
         
@@ -66,6 +96,12 @@ class Program(object):
         }
 
     def setCmdlineFromProc(self, forcePid=None):
+        '''
+            setCmdlineFromProc - Sets the commandline properties (cmdline, exectuable, args) from the proc value.
+
+            @param forcePid - Uses the pid on this object as default, but you can force another with this param.
+
+        '''
         if forcePid is None:
             forcePid = self.pid
         if not forcePid:
@@ -78,6 +114,12 @@ class Program(object):
         self.args = cmdlineInfo['args']
 
     def validateProcTitle(self, programConfig):
+        '''
+            validateProcTitle - uses proctitle_re to validate if the proctitle associated with the pid associated with this object
+              matches.
+
+            @return -<bool> If the pid associated with this Program has a proctitle that matches
+        '''
         if not programConfig.proctitle_re:
             # Disabled proctitle matching somehow. So always match. BAD IDEA!
             return True
@@ -86,6 +128,13 @@ class Program(object):
 
     @classmethod
     def createFromPidFile(cls, pidfile):
+        '''
+            createFromPidFile - Creates a Program from a pidfile.
+
+            @param pidfile <str> - Path to pid file
+
+            @raises - An exception if no process can be created from the pidfile. Specific exception depends on error. Not validated with proctitle_re, do that in an additional call.
+        '''
         with open(pidfile, 'rt') as f:
             pid = f.read().strip()
         pid = int(pid)
@@ -95,6 +144,15 @@ class Program(object):
 
     @classmethod
     def createFromRunningProcesses(cls, programConfig):
+        '''
+            createFromRunningProcesses - Create a Program using programConfig. scans all running processes, and returns a constructed Program if a match is found.
+
+            @param programConfig <ProgramConfig.ProgramConfig> - The config for a program
+
+            @return - A constructed "Program" if a match found, ootherwise None.
+
+            Should not raise anything.
+        '''
         myUid = os.getuid()
         allMyPids = []
         # Do in a loop incase processes are created/destroyed between getting the list and checking it
@@ -122,6 +180,17 @@ class Program(object):
 
     @classmethod
     def isProgramRunning(cls, programConfig):
+        '''
+            isProgramRunning - Actively check if a program is running
+
+            @param programConfig <ProgramConfig.ProgramConfig> - The config of a program
+
+            @return - True if the program is running and matches the proctitle.
+
+            Use ProgramActions.getRunningProgram instead.
+
+        '''
+        # TODO: This function is unused, and does not handle the scan. Eitehr make it handle scan, or direct toward ProgramActions.getRunningProgram.
         try:
             prog = cls.createFromPidFile(programConfig.pidfile)
         except:
@@ -131,8 +200,19 @@ class Program(object):
 
 
     def getStartTime(self):
+        '''
+            getStartTime - Get the epoch timestamp for when this process was started.
+
+            @return - time process was started, or None if no program found matching this Program's pid.
+        '''
         try:
-            return os.stat('/proc/' + str(self.pid)).st_mtime
+            statInfo = os.stat('/proc/' + str(self.pid))
+            if not statInfo:
+                return None
+            # Try ctime first, but may not be present everywhere, so fallback to st_mtime
+            if hasattr(statInfo, 'st_ctime') and statInfo.st_ctime:
+                return statInfo.st_ctime
+            return statInfo.st_mtime
         except Exception as e:
             pass
 
@@ -140,6 +220,11 @@ class Program(object):
 
 
     def startProgram(self, programConfig):
+        '''
+            startProgram - Start the program and update this object.
+
+            @param programConfig <ProgramConfig.ProgramConfig> - The program config associated with this program.
+        '''
         useShell = programConfig.useshell
 
         if useShell is False:
@@ -199,11 +284,21 @@ class Program(object):
         return True
 
     def writePidFile(self, programConfig, forcePid=None):
+        '''
+            writePidFile - write the pid file for this program.
+
+            @param programConfig <ProgramConfig.ProgramConfig> - The ProgramConfig for this program
+            
+            @param forcePid <int/None> - if provided, use this pid instead of self.pid
+
+            @return - False if not written (no autopid), otherwise True if written.
+        '''
         if forcePid:
             pid = forcePid
         else:
             pid = self.pid
 
+        # Note: pidfile should never be undefined... but just incase somehow.
         if programConfig.autopid is False or not programConfig.pidfile:
             return False
         with open(programConfig.pidfile, 'wt') as f:
@@ -212,6 +307,12 @@ class Program(object):
         
 
     def removePidFile(self, programConfig):
+        '''
+            removePidFile - Removes the pid file associated with this Program.
+
+            @param programConfig <ProgramConfig.ProgramConfig> - The ProgramConfig for this program
+        '''
+
         try:
             os.unlink(programConfig.pidfile)
             return True
@@ -219,6 +320,12 @@ class Program(object):
             return False
 
     def stopProgram(self, programConfig):
+        '''
+            stopProgram - Stop this Program and remove pid file.
+
+            @param programConfig <ProgramConfig.ProgramConfig> - The ProgramConfig for this program
+        '''
+
         if self.pid and self.validateProcTitle(programConfig):
             try:
                 os.kill(self.pid, signal.SIGTERM)

@@ -27,6 +27,12 @@ import os
 __all__ = ('MainConfig', )
 
 class MainConfig(object):
+    '''
+        MainConfig - The main config object. Will read all child configs, and provides access to all configs through this object.
+
+        This object provides a refreshable means to update runtime configuration. 
+        The main op iterations should fetch the relevant sections, and on next loop fetch from new.
+    '''
 
     def __init__(self, config_dir=None, pidfile=None, usrsvcd_stdout=None, usrsvcd_stderr=None, **kwargs):
         if kwargs:

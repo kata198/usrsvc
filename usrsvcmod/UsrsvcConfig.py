@@ -35,6 +35,9 @@ from .ProgramConfig import ProgramConfig
 __all__ = ('UsrsvcConfig', )
 
 class UsrsvcConfig(object):
+    '''
+        UsrsvcConfig - The main config class. All other configs are accessable through this.
+    '''
 
     def __init__(self, mainConfigFile):
         self.mainConfigFile = mainConfigFile
