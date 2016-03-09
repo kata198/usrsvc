@@ -56,7 +56,7 @@ Each account has its own independent configurations, and runs its own instance o
 
 **Simple Configuration**
 
-All of the configuration
+All of the configuration is through simple ini-style config files, and supports defining and inheriting default settings to prevent duplication across programs.
 
 
 usrsvc (tool)
