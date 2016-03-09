@@ -34,12 +34,13 @@ from usrsvcmod.UsrsvcConfig import UsrsvcConfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.logging import logMsg, logErr
-
+from usrsvcmod.constants import ReturnCodes
 
 def doAction(args):
     action = args[0]
     programName = args[1]
     if programName == 'all':
+        # TODO: Provided a threaded/multiprocess means of start/stop/restart "all"
         ret = 0
         for singleProgramName in config.getProgramConfigs().keys():
             try:
@@ -47,20 +48,19 @@ def doAction(args):
             except Exception as e:
                 logErr('Exception (%s) trying to %s %s\n' %(str(e.__class__.__name__), action, singleProgramName))
                 traceback.print_exc()
-                ret2 = 254
+                ret2 = ReturnCodes.UNKNOWN_FAILURE
             if ret2 != 0:
                 ret = ret2
         return ret
-    # TODO: Configurable lock dir?
+    # TODO: Configurable lock dir? Or at least temp dir? The downside is, if the config changes we may have a double-held lock.
     lock = NamedAtomicLock('.lock_usrsvc' + programName, maxLockAge=30)
     if not lock.acquire(31):
         logErr('Cannot acquire lock for %s. Is something else looping trying to access it? Try the command again.\n' %(programName,))
-        return 3
+        return ReturnCodes.TRY_AGAIN
     ret = _doAction(args)
     lock.release()
     return ret
 
-# TODO: Standardize return codes and create constants
 def _doAction(args):
     action = args[0]
     programName = args[1]
@@ -69,10 +69,11 @@ def _doAction(args):
         programConfig = config.getProgramConfig(programName)
     except KeyError:
         logErr('No such program: %s\n' %(programName,))
-        return 2
+        return ReturnCodes.PROGRAM_UNDEFINED
 
     if programConfig.enabled is False and action != 'status':
         logErr('Program %s is currently disabled in config. Only the "status" action is supported on disabled programs.\n' %(programName,))
+        return ReturnCodes.PROGRAM_DISABLED
 
     if action == 'start':
         prog = None
@@ -84,23 +85,27 @@ def _doAction(args):
         prog = getRunningProgram(programConfig)
         if prog is not None:
             logMsg('Program %s is already running:\n\n%s\n' %(programName, prog.__dict__))
-            return 0
+            return ReturnCodes.SUCCESS
 
         prog = Program(programConfig.pidfile)
         success = prog.startProgram(programConfig)
         if success:
             logMsg('Started %s:\n\n%s\n' %(programName, prog.__dict__))
-            return 0
+            return ReturnCodes.SUCCESS
         else:
             logErr('Failed to start %s!\n' %(programName,))
-            return 1
+            return ReturnCodes.PROGRAM_FAILED_TO_START
 
     elif action == 'stop':
         
         prog = getRunningProgram(programConfig)
         if prog:
-            prog.stopProgram(programConfig)
-        return 0
+            logMsg('Stopping %s [%d]\n' %(programName, prog.pid))
+            actionTaken = prog.stopProgram(programConfig)
+            logMsg('%s %s\n' %(programName, actionTaken))
+        else:
+            logMsg('%s was not running.\n' %(programName,))
+        return ReturnCodes.SUCCESS
     elif action == 'restart':
         _doAction(['stop'] + args[1:])
         return _doAction(['start'] + args[1:])
@@ -108,29 +113,30 @@ def _doAction(args):
         prog = getRunningProgram(programConfig)
         if prog:
             logMsg('%s is running:\n\n%s\n' %(programName, str(prog.__dict__)))
-            return 0
+            return ReturnCodes.SUCCESS
         else:
             logErr('%s is NOT running\n' %(programName,))
-            return 1
+            return ReturnCodes.GENERAL_FAILURE
     else:
         logErr('Unknown action: %s\n' %(action,))
-        return 2
+        return ReturnCodes.INVALID_ACTION
  
 
 
 
 def printUsage():
-    sys.stderr.write('Usage: usrsvc [start/stop/restart/status] [program name]\n  Performs the requested action on the given program name.\n\nUses the config file found at $HOME/usrsvc.cfg (%s)\n' %(os.environ['HOME'] + '/usrsvc.cfg'))
+    sys.stderr.write('Usage: usrsvc [start/stop/restart/status] [program name]\n  Performs the requested action on the given program name.\n "all" can be used for start/stop/restart.\n\nUses the config file found at $HOME/usrsvc.cfg (%s)\n' %(os.environ['HOME'] + '/usrsvc.cfg'))
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 3 or '--help' in sys.argv:
         printUsage()
-        sys.exit(1)
+        sys.exit(ReturnCodes.GENERAL_FAILURE)
 
     config = UsrsvcConfig(os.environ['HOME'] + '/usrsvc.cfg')
     config.parse()
 
+    # Prevent signals from interrupting us
     signal.signal(signal.SIGTERM, signal.SIG_IGN)
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 

@@ -57,16 +57,6 @@ class Program(object):
         self.running = running
 
         
-
-    def isRunning(self):
-        '''
-            isRunning - returns the "running" flag. This only tests if it was running when created.
-
-            @see isProgramRunning to do an active check if the program is running.
-        '''
-        # TODO: get rid of this method
-        return bool(self.running)
-
     @staticmethod
     def _getProcCmdline(pid):
         '''
@@ -187,13 +177,25 @@ class Program(object):
 
             @return - True if the program is running and matches the proctitle.
 
-            Use ProgramActions.getRunningProgram instead.
+            NOT USED!
+
+            Use ProgramActions.getRunningProgram instead. That will return the program itself, and manage the pidfile.
 
         '''
-        # TODO: This function is unused, and does not handle the scan. Eitehr make it handle scan, or direct toward ProgramActions.getRunningProgram.
+        prog = None
         try:
             prog = cls.createFromPidFile(programConfig.pidfile)
         except:
+            pass
+
+        if prog is None and programConfig.scan_for_process is True:
+            try:
+                prog = Program.createFromRunningProcesses(programConfig)
+                return True # Don't need to re-validate the proc title
+            except:
+                return False
+
+        if prog is None:
             return False
 
         return prog.validateProcTitle(programConfig)
@@ -250,9 +252,14 @@ class Program(object):
         else:
             env = {}
 
+        if hasattr(subprocess, 'DEVNULL'):
+            devnull = subprocess.DEVNULL
+        else:
+            devnull = open('/dev/null', 'rt')
+
         env.update(programConfig.Env)
 
-        pipe = subprocess.Popen(command, shell=useShell, stdout=stdout, stderr=stderr, env=env)
+        pipe = subprocess.Popen(command, shell=useShell, stdout=stdout, stderr=stderr, stdin=devnull, env=env, close_fds=False)
         
         now = time.time()
         successAfter = now + programConfig.success_seconds
@@ -282,6 +289,51 @@ class Program(object):
         self.writePidFile(programConfig, self.pid)
 
         return True
+
+
+    def stopProgram(self, programConfig):
+        '''
+            stopProgram - Stop this Program and remove pid file.
+
+            @param programConfig <ProgramConfig.ProgramConfig> - The ProgramConfig for this program
+
+            @return <str> - Returns a string of what happened. Can be one of "noaction", "terminated" (SIGTERM), "killed" (SIGKILL)
+
+        '''
+
+        result = 'no action'
+
+        if self.pid and self.validateProcTitle(programConfig):
+            try:
+                os.kill(self.pid, signal.SIGTERM)
+                result = 'terminated'
+
+                termToKillSeconds = programConfig.term_to_kill_seconds
+                now = time.time()
+                maxTimeBeforeKill = now + termToKillSeconds
+
+                pollTime = min(termToKillSeconds, .1)
+
+                while now < maxTimeBeforeKill:
+                    # If process has died, abort.
+                    if not os.path.exists('/proc/%d' %(self.pid,)):
+                        break
+                    # Otherwise, wait 100ms before checking again.
+                    time.sleep(pollTime)
+                    now = time.time()
+
+                # If program has not terminated given the threshold, send 'er the ol' boot.
+                if now >= maxTimeBeforeKill:
+                    os.kill(self.pid, signal.SIGKILL)
+                    result = 'killed'
+            except:
+                pass
+
+        # Remove pid file
+        self.removePidFile(programConfig)
+
+        return result
+
 
     def writePidFile(self, programConfig, forcePid=None):
         '''
@@ -319,35 +371,5 @@ class Program(object):
         except:
             return False
 
-    def stopProgram(self, programConfig):
-        '''
-            stopProgram - Stop this Program and remove pid file.
-
-            @param programConfig <ProgramConfig.ProgramConfig> - The ProgramConfig for this program
-        '''
-
-        if self.pid and self.validateProcTitle(programConfig):
-            try:
-                os.kill(self.pid, signal.SIGTERM)
-                termToKillSeconds = programConfig.term_to_kill_seconds
-                now = time.time()
-                maxTimeBeforeKill = now + termToKillSeconds
-
-                pollTime = min(termToKillSeconds, .1)
-
-                while now < maxTimeBeforeKill:
-                    # If process has died, abort.
-                    if not os.path.exists('/proc/%d' %(self.pid,)):
-                        break
-                    # Otherwise, wait 100ms before checking again.
-                    time.sleep(pollTime)
-                    now = time.time()
-
-                # If program has not terminated given the threshold, send 'er the ol' boot.
-                if now >= maxTimeBeforeKill:
-                    os.kill(self.pid, signal.SIGKILL)
-            except:
-                pass
-
-        # Remove pid file
-        self.removePidFile(programConfig)
+    def __str__(self):
+        return str(self.__dict__)

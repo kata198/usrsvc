@@ -40,7 +40,7 @@ class ProgramConfig(object):
             command=None, pidfile=None, autostart=True,
             autorestart=True, maxrestarts=0, restart_delay=0,
             autopid=True, useshell=True, proctitle_re=None, 
-            success_seconds=2.0, term_to_kill_seconds=3.0, scan_for_process=False,
+            success_seconds=2.0, term_to_kill_seconds=8.0, scan_for_process=True,
             stdout=None, stderr=None,
             enabled=True,
             inherit_env=True, Env=None, Monitoring=None,
@@ -56,8 +56,8 @@ class ProgramConfig(object):
                 * pidfile - REQUIRED - Path to a pidfile. If #autopid# is False, your app must write its pid to this file. Otherwise, usrsvcd will mangage it, even with #scan_for_process# or other methods.
                 * enabled - Boolean, default True. Set to "False" to disable the program from being managed by "usrsvcd"
                 * autopid - Default True, boolean. If True, "usrsvc" and "usrsvcd" will write the pid of the launched program to the pidfile, i.e. managed. If your application forks-and-exits, you can set this to FAlse and write your own pid, or use #scan_for_process#
-                * scan_for_process - Default False, boolean. If True, "usrsvc" and "usrsvcd" will, in the absense of a pidfile which matches with #proctitle_re#, use #proctitle_re# and scan running processes for the application. This can find applications even when the pidfile has gone missing.
-                * proctitle_re - None or a regular expression which will match the proctitle (can be seen as last col in "ps auxww).  If none provided, a default wherein the command and arguments are used, will work in almost all instances. Some applications modify their proctitle, and you may need to use this to match them.
+                * scan_for_process - Default True, boolean. If True, "usrsvc" and "usrsvcd" will, in the absense of a pidfile which matches with #proctitle_re#, use #proctitle_re# and scan running processes for the application. This can find applications even when the pidfile has gone missing.
+                * proctitle_re - None or a regular expression which will match the proctitle (can be seen as last col in "ps auxww").  If none provided, a default wherein the command and arguments are used, will work in almost all instances. Some applications modify their proctitle, and you may need to use this to match them.
 
             
                 * autostart - Default True, boolean value if program should be started if not already running when "usrsvcd" is invoked
@@ -65,7 +65,7 @@ class ProgramConfig(object):
                 * maxrestarts - Default 0, integer on the max number of times usrsvcd will try to automatically restart the application by "usrsvcd". If it is seen running again naturally, this counter will reset. 0 means unlimited restarts.
                 * restart_delay - Default 0, integer on the miminum number of seconds between a failing "start" and the next "restart" attmept by "usrsvcd". 
                 * success_seconds - Default 2, Float on the number of seconds the application must be running for "usrsvc" to consider it successfully started.
-                * term_to_kill_seconds : Default 3, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
+                * term_to_kill_seconds : Default 8, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
 
 
 
@@ -101,6 +101,10 @@ class ProgramConfig(object):
         self.useshell = getConfigValueBool(useshell, 'useshell')
         self.scan_for_process = getConfigValueBool(scan_for_process, 'scan_for_process')
         self.term_to_kill_seconds = getConfigValueFloat(term_to_kill_seconds, 'term_to_kill_seconds')
+
+        if self.term_to_kill_seconds < 0:
+            raise ValueError('term_to_kill_seconds is required and must be a positive number.')
+
         self.inherit_env = getConfigValueBool(inherit_env, 'inherit_env')
         self.defaults = defaults
         
@@ -131,9 +135,9 @@ class ProgramConfig(object):
             raise ValueError('Cannot parse command,\n%s\nError: %s' %(command, str(e)))
 
         # If proctitle_re is not defined, default to the provided command.
-        #   Do not use start or end because given a shebang line, the executable may change.
+        #   Do not use start because given a shebang line, the executable may change.
         if not proctitle_re:
-            proctitle_re = re.compile('(%s)' %(re.escape(' '.join(commandSplit)), ))
+            proctitle_re = re.compile('(%s)$' %(re.escape(' '.join(commandSplit)), ))
 
         self.proctitle_re = proctitle_re
             

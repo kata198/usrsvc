@@ -40,6 +40,7 @@ from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.logging import logMsg, logErr
 from usrsvcmod.debug import isDebugEnabled, toggleDebug
+from usrsvcmod.constants import ReturnCodes
 
 def printUsage():
     sys.stderr.write('''Usage: usrsvcd (Optional: [action])
@@ -152,7 +153,7 @@ def configureStdoutStderr(mainConfig):
             sys.stdout = open(mainConfig.usrsvcd_stdout, 'at')
         except:
             logErr('Cannot open usrsvcd_stdout ( %s ) for writing.\n' %(mainConfig.usrsvcd_stdout,))
-            return 5
+            return ReturnCodes.INSUFFICIENT_PERMISSIONS
         try:
             oldstdout.close()
         except:
@@ -168,14 +169,14 @@ def configureStdoutStderr(mainConfig):
                 sys.stderr = open(mainConfig.usrsvcd_stderr, 'at')
             except:
                 logErr('Cannot open usrsvcd_stderr ( %s ) for writing.\n' %(mainConfig.usrsvcd_stderr,))
-                return 5
+                return ReturnCodes.INSUFFICIENT_PERMISSIONS
         try:
             oldstderr.close()
         except:
             pass
                 
 
-    return 0
+    return ReturnCodes.SUCCESS
 
 def handleArg(arg):
     '''
@@ -186,39 +187,39 @@ def handleArg(arg):
     if arg == 'checkconfig':
         config = getConfig()
         if not config:
-            return 1
+            return ReturnCodes.INVALID_CONFIG
 
-        return 0
+        return ReturnCodes.SUCCESS
 
     elif arg == 'status':
         config = getConfig()
         if not config:
             logErr('Error in config, cannot check status.\n')
-            return 254
+            return ReturnCodes.INVALID_CONFIG
         usrsvcdProg = getUsrsvcdProg()
         if not usrsvcdProg:
             logErr('usrsvcd is not running.\n')
-            return 1
+            return ReturnCodes.GENERAL_FAILURE
         logMsg('usrsvcd is running:\n\n%s\n' %(str(usrsvcdProg),))
-        return 0
+        return ReturnCodes.SUCCESS
 
     elif arg == 'reread':
         config = getConfig()
         if not config:
             logErr('Error in config, cannot continue.\n')
-            return 254
+            return ReturnCodes.INVALID_CONFIG
         usrsvcdProg = getUsrsvcdProg()
         if not usrsvcdProg:
             logErr('usrsvcd is not running.\n')
-            return 0 # Not an error condition, because the changes will be applied whenever usrsvcd is started.
+            return ReturnCodes.SUCCESS # Not an error condition, because the changes will be applied whenever usrsvcd is started.
         os.kill(usrsvcdProg.pid, signal.SIGUSR1)
-        return 0
+        return ReturnCodes.SUCCESS
 
     elif arg == 'restart':
         config = getConfig()
         if not config:
             logErr('Error in config, cannot continue.\n')
-            return 254
+            return ReturnCodes.INVALID_CONFIG
         usrsvcdProg = getUsrsvcdProg()
         if usrsvcdProg:
             try:
@@ -227,7 +228,7 @@ def handleArg(arg):
                 # could not send sigterm?
                 if os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
                     logErr('Cannot terminate existing usrsvcd process:\n\n%s\n' %(str(usrsvcdProg),))
-                    return 1
+                    return ReturnCodes.GENERAL_FAILURE
 
             # Wait for process to die cleanly.
             time.sleep(.1)
@@ -243,10 +244,10 @@ def handleArg(arg):
                         pass
                     break
         subprocess.Popen(['usrsvcd'], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
-        return 0
+        return ReturnCodes.SUCCESS
     else:
         logErr('Unknown command: %s\n' %(arg,))
-        return 1
+        return ReturnCodes.INVALID_ACTION
         
 
 
@@ -355,7 +356,7 @@ def doMonitoring():
 if __name__ == '__main__':
     if '--help' in sys.argv:
         printUsage()
-        sys.exit(1)
+        sys.exit(ReturnCodes.GENERAL_FAILURE)
 
 
     args = sys.argv[1:]
@@ -366,7 +367,7 @@ if __name__ == '__main__':
     if len(args) > 1:
         logErr('Too many arguments.\n\n')
         printUsage()
-        sys.exit(1)
+        sys.exit(ReturnCodes.GENERAL_FAILURE)
     
     if args:
         # They provided an action. This function will return the exit code
@@ -375,24 +376,24 @@ if __name__ == '__main__':
         except Exception as e:
             logErr('Got exception handling arg: %s\n' %(str(e),))
             traceback.print_exc()
-            sys.exit(1)
+            sys.exit(ReturnCodes.UNKNOWN_FAILURE)
             
             
     config = getConfig()
     if config is None:
-        sys.exit(4)
+        sys.exit(ReturnCodes.INVALID_CONFIG)
 
 
     mainPidFile = config.mainConfig.pidfile
     usrsvcdProg = getUsrsvcdProg()
     if usrsvcdProg:
         logErr('usrsvcd is already running:\n\n%s\n' %(str(usrsvcdProg),))
-        sys.exit(1)
+        sys.exit(ReturnCodes.USRSVCD_ALREADY_RUNNING)
 
     # Ok, no other process is running, we are good to go. Fork and exit parent. Child continues.
     pid = os.fork()
     if pid != 0:
-        sys.exit(0)
+        sys.exit(ReturnCodes.SUCCESS)
 
     logMsg('usrsvcd started as pid: %d\n' %(os.getpid(),))
 
@@ -409,7 +410,7 @@ if __name__ == '__main__':
             f.write(str(os.getpid()) + '\n')
     except Exception as e:
         logErr('Failed to write PID file ( %s ): %s\n' %(mainPidFile, str(e)))
-        sys.exit(5)
+        sys.exit(ReturnCodes.INSUFFICIENT_PERMISSIONS)
      
 
 
@@ -444,9 +445,13 @@ if __name__ == '__main__':
                 if programName in startProcesses:
                     # We ensure that we don't tag the program running when it is still starting by waiting for the pipe to finish.
                     #  usrsvc waits "success_seconds" before determining success.
-                    if startProcesses[programName].poll() is None:
+                    pollResult = startProcesses[programName].poll()
+                    if pollResult is None:
                         continue
                     del startProcesses[programName]
+
+                    if pollResult != 0:
+                        logErr('WARNING: The command "usrsvc start %s" returned non-zero: %d\n' %(programName, pollResult))
 
                 # This goes after the thread check, incase they reload config and change autostart we don't leave a subprocess
                 if programConfig.enabled is False or programConfig.autostart is False and programConfig.autorestart is False:
