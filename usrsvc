@@ -13,7 +13,7 @@
     you are may email Tim Savannah <kata198 at gmail dot com>, or find them on the
     current website intended for distribution of usrsvc.
 
-    usrsvc is a user process manager
+    usrsvc is the tool to start/stop/restart and get status on services. usrsvcd is the daemon for autostart, autorestart, monitoring, etc.
 '''
 
 
@@ -119,7 +119,18 @@ def _doAction(args):
 
 
 def printUsage():
-    sys.stderr.write('Usage: usrsvc [start/stop/restart/status] [program name]\n  Performs the requested action on the given program name.\n "all" can be used for start/stop/restart.\n\nUses the config file found at $HOME/usrsvc.cfg (%s)\n' %(os.environ['HOME'] + '/usrsvc.cfg'))
+    sys.stderr.write('''Usage: usrsvc [start/stop/restart/status] [program name]
+ Performs the requested action on the given program name.
+ 
+usrsvc is tool for performing specific actions on services, usrsvcd is the related daemon for autorestart/monitoring, etc.
+
+
+"all" can be used for start/stop/restart in place of "program name"
+
+See https://github.com/kata198/usrsvc/README.md for more documentation
+
+Uses the config file found at $HOME/usrsvc.cfg (%s)
+''' %(os.environ['HOME'] + '/usrsvc.cfg', ) )
 
 
 if __name__ == '__main__':

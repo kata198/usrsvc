@@ -55,8 +55,11 @@ Optional daemon portion of usrsvc which actively monitors processes and provides
       restart                -   Restarts the usrsvcd daemon cleanly
       status                 -   Checks if usrsvcd is running. Returns non-zero on failure
 
+
+See https://github.com/kata198/usrsvc/README.md for more documentation
+
 Uses main config file in $HOME/usrsvc.cfg ''')
-    sys.stderr.write('( %s/%s )\n' %(os.environ['HOME'], '/usrsvc.cfg'))
+    sys.stderr.write('( %s/%s )\n' %(os.environ['HOME'], 'usrsvc.cfg'))
 
 
 # Global config, so all methods get the reload

@@ -7,21 +7,29 @@
     otherwise the most up to date license can be found at
     https://github.com/kata198/usrsvc/LICENSE
 
-    usrsvc is a user process manager
+    A user service manager for running/managing/monitoring daemons and services
 '''
 
 import os
+import sys
 from setuptools import setup
 
 
-dirName = os.path.dirname(__file__)
-if dirName and os.getcwd() != dirName:
-    os.chdir(dirName)
 
-with open('README.rst', 'r') as f:
-    long_description = f.read()
 
 if __name__ == '__main__':
+
+    dirName = os.path.dirname(__file__)
+    if dirName and os.getcwd() != dirName:
+        os.chdir(dirName)
+
+    summary = 'A user service manager for running/managing/monitoring daemons and services'
+    try:
+        with open('README.rst', 'rt') as f:
+            long_description = f.read()
+    except Exception as e:
+        sys.stderr.write('Error reading from README.rst: %s\n' %(str(e),))
+        log_description = summary
 
     setup(name='usrsvc',
             version='1.0.0',
@@ -34,8 +42,8 @@ if __name__ == '__main__':
             maintainer_email='kata198@gmail.com',
             requires=['configobj', 'NamedAtomicLock'],
             install_requires=['configobj', 'NamedAtomicLock'],
-            description='A user service manager',
-            long_description='A user service manager',
+            description=summary,
+            long_description=long_description,
             license='GPLv2',
             keywords=['usrsvc', 'usrsvcd', 'daemon', 'user', 'services', 'service', 'init', 'script', 'start', 'stop', 'restart', 'manage', 'programs', 'applications', 'supervisor', 'supervisord', 'systemd', 'daemontools'],
             classifiers=['Development Status :: 4 - Beta',
