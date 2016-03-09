@@ -1,0 +1,9 @@
+include LICENSE
+include setup.py
+include MANIFEST.in
+include usrsvc
+include usrsvcd
+include requirements.txt
+include README.md
+include README.rst
+recursive-include usrsvcmod *.py

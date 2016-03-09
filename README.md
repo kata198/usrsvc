@@ -185,18 +185,27 @@ The "Program" section has the following properties:
 
 
 * autostart - Default True, boolean value if program should be started if not already running when "usrsvcd" is invoked
+
 * autorestart - Default True, boolean value if program should be restarted if it stopped while "usrsvcd" is running
+
 * maxrestarts - Default 0, integer on the max number of times usrsvcd will try to automatically restart the application by "usrsvcd". If it is seen running again naturally, this counter will reset. 0 means unlimited restarts.
+
 * restart\_delay - Default 0, integer on the miminum number of seconds between a failing "start" and the next "restart" attmept by "usrsvcd". 
+
 * success\_seconds - Default 2, Float on the number of seconds the application must be running for "usrsvc" to consider it successfully started.
+
 * term\_to\_kill\_seconds : Default 8, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
 
 
 
 NOTE: The following stdout/stderr are opened in "append" mode always. 
+
 * stdout - REQUIRED - Absolute path to a file to be used for stdout
+
 * stderr - Absolute path to a file to be used for stderr, or "stdout" to redirect to stdout. Default is to redirect stderr to stdout. May be same filename as stdout.
+
 * defaults - This can reference a "DefaultSettings" section defined elsewhere, i.e. to reference [DefaultSettings:MySettings] use "defaults=MySettings". If provided, this Program will inherit the settings defined in the DefaultSettings as the defaults. Anything provided explicitly in this Program will override those found in the defaults.
+
 * inherit\_env - Boolean, default True. If True, will inherit the env from "usrsvc" or "usrsvcd". Otherwise, will only use the Env as defined in the Env subsection.
 
 
