@@ -38,7 +38,7 @@ if __name__ == '__main__':
             long_description='A user service manager',
             license='GPLv2',
             keywords=['usrsvc', 'usrsvcd', 'user', 'services', 'service', 'init', 'script', 'start', 'stop', 'restart', 'manage', 'programs', 'applications', 'supervisor', 'supervisord', 'systemd'],
-            classifiers=['Development Status :: 3 - Alpha',
+            classifiers=['Development Status :: 4 - Beta',
                          'Programming Language :: Python',
                          'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
                          'Programming Language :: Python :: 2',
