@@ -32,13 +32,13 @@ if __name__ == '__main__':
         log_description = summary
 
     setup(name='usrsvc',
-            version='1.0.0',
+            version='1.0.1',
             packages=['usrsvcmod'],
             scripts=['usrsvc', 'usrsvcd'],
             author='Tim Savannah',
             author_email='kata198@gmail.com',
             maintainer='Tim Savannah',
-            url='https://github.com/kata198/AdvancedHTMLParser',
+            url='https://github.com/kata198/usrsvc',
             maintainer_email='kata198@gmail.com',
             requires=['configobj', 'NamedAtomicLock'],
             install_requires=['configobj', 'NamedAtomicLock'],
