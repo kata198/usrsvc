@@ -67,8 +67,11 @@ The "usrsvc" tool handles the basic operations of starting/stopping/restarting/s
 
 
 	Usage: usrsvc [start/stop/restart/status] [program name]
+
 	  Performs the requested action on the given program name.
+
 	 "all" can be used for start/stop/restart.
+
 
 	Uses the config file found at $HOME/usrsvc.cfg
 
@@ -80,15 +83,20 @@ The tool will output some basic information about what happened, and give a mean
 start:
 
 	[myuser]$ usrsvc start MagicLooper
+
 	[Tue Mar  8 22:14:34 2016] - Started MagicLooper:
 
+
 	{'args': ['/home/svcact/bin/MagicLooper.py'], 'cmdline': '/usr/bin/python /home/svcact/bin/MagicLooper.py', 'pid': 12467, 'executable': '/usr/bin/python', 'running': True}
+
 
 
 status:
 
 	[myuser]$ usrsvc status MagicLooper
+
 	[Tue Mar  8 22:14:55 2016] - MagicLooper is running:
+
 
 	{'args': ['/home/svcact/bin/MagicLooper.py'], 'cmdline': '/usr/bin/python /home/svcact/bin/MagicLooper.py', 'pid': 12467, 'executable': '/usr/bin/python', 'running': True}
 
@@ -96,7 +104,9 @@ status:
 stop:
 
 	[myuser]$ usrsvc stop MagicLooper
+
 	[Tue Mar  8 22:15:37 2016] - Stopping MagicLooper [12467]
+
 	[Tue Mar  8 22:15:37 2016] - MagicLooper terminated
 
 
@@ -106,16 +116,25 @@ usrsvcd (daemon)
 The *usrsvcd* daemon handles the autostart, autorestart, and monitoring of the configured services. It is optional, and not required to use usrsvc, but required for advanced features.
 
 	Usage: usrsvcd (Optional: [action])
+
 	Optional daemon portion of usrsvc which actively monitors processes and provides the autostart/autorestart, and other optional features.
 
+
 		Actions:
+
 			Running with no arguments starts the usrsvcd daemon. You can also provide one of several "action" arguments which affect the running instance of usrsvcd.
 
+
 			checkconfig            -   Try to parse config files and validate correctness, without affecting the running usrsvcd instance. Returns non-zero on failure.
+
 			reread                 -   Sends SIGUSR1 to the running usrsvcd process, which will cause it to reread configs and immediately apply the changes to the running instance.
+
 										If there are errors in the configs, a message will be logged by the usrsvcd process and it will retain its current configuration state.
+
 			restart                -   Restarts the usrsvcd daemon cleanly
+
 			status                 -   Checks if usrsvcd is running. Returns non-zero on failure
+
 
 	Uses main config file in $HOME/usrsvc.cfg
 
@@ -138,7 +157,7 @@ Configuration
 =============
 
 
-Configuration starts with the "main" config at $HOME/usrsvc.cfg . This file defines some basic info, or can contain your full configuration if you want. The recommended usage is to provide the "config\_dir" property therein, which specifies a directory. In that directory, all files ending in ".cfg" will be processed, allowing you to have each Program defined in its own config, default settings in another config, etc. This makes it simpler to manage and add/remove services.
+Configuration starts with the "main" config at $HOME/usrsvc.cfg . This file defines some basic info, or can contain your full configuration if you want. The recommended usage is to provide the "config_dir" property therein, which specifies a directory. In that directory, all files ending in ".cfg" will be processed, allowing you to have each Program defined in its own config, default settings in another config, etc. This makes it simpler to manage and add/remove services.
 
 
 Configuration is "configobj" style, which closely mimics ini-style but supports subsections.
@@ -151,13 +170,13 @@ The following are the sections and their meanings. [Main] must be defined in $HO
 The [Main] section must be found in $HOME/usrsvc.cfg, and can contain any of the following properties:
 
 
-* config\_dir - This defines a directory which will be searched for additional configuration. Anything with a ".cfg" suffix will be processed as a config.
+* config_dir - This defines a directory which will be searched for additional configuration. Anything with a ".cfg" suffix will be processed as a config.
 
 * pidfile - REQUIRED - This defines the location where *usrsvcd* will store its own pid.
 
-* usrsvcd\_stdout - If defined, usrsvcd will log stdout to this file instead of the default stdout (likely a terminal). Must be an absolute path.
+* usrsvcd_stdout - If defined, usrsvcd will log stdout to this file instead of the default stdout (likely a terminal). Must be an absolute path.
 
-* usrsvcd\_stderr - If defined, usrsvcd will log stderr to this file instead of the default stderr (likely a terminal). Use the value "stdout" to log stderr to the same location as stdout, otherwise must be an absolute path.
+* usrsvcd_stderr - If defined, usrsvcd will log stderr to this file instead of the default stderr (likely a terminal). Use the value "stdout" to log stderr to the same location as stdout, otherwise must be an absolute path.
 
 
 **[Program:myprogram]**
@@ -172,15 +191,15 @@ The "Program" section has the following properties:
 
 * useshell - If True, will invoke your application through a shell. You can use shell expressions in this mode. Use "False" if you don't need this.
 
-* pidfile - REQUIRED - Path to a pidfile. If #autopid# is False, your app must write its pid to this file. Otherwise, usrsvcd will mangage it, even with #scan\_for\_process# or other methods.
+* pidfile - REQUIRED - Path to a pidfile. If #autopid# is False, your app must write its pid to this file. Otherwise, usrsvcd will mangage it, even with #scan_for_process# or other methods.
 
 * enabled - Boolean, default True. Set to "False" to disable the program from being managed by "usrsvcd"
 
-* autopid - Default True, boolean. If True, "usrsvc" and "usrsvcd" will write the pid of the launched program to the pidfile, i.e. managed. If your application forks-and-exits, you can set this to FAlse and write your own pid, or use #scan\_for\_process#
+* autopid - Default True, boolean. If True, "usrsvc" and "usrsvcd" will write the pid of the launched program to the pidfile, i.e. managed. If your application forks-and-exits, you can set this to FAlse and write your own pid, or use #scan_for_process#
 
-* scan\_for\_process - Default True, boolean. If True, "usrsvc" and "usrsvcd" will, in the absense of a pidfile which matches with #proctitle\_re#, use #proctitle\_re# and scan running processes for the application. This can find applications even when the pidfile has gone missing.
+* scan_for_process - Default True, boolean. If True, "usrsvc" and "usrsvcd" will, in the absense of a pidfile which matches with #proctitle_re#, use #proctitle_re# and scan running processes for the application. This can find applications even when the pidfile has gone missing.
 
-* proctitle\_re - None or a regular expression which will match the proctitle (can be seen as last col in "ps auxww").  If none provided, a default wherein the command and arguments are used, will work in almost all instances. Some applications modify their proctitle, and you may need to use this to match them.
+* proctitle_re - None or a regular expression which will match the proctitle (can be seen as last col in "ps auxww").  If none provided, a default wherein the command and arguments are used, will work in almost all instances. Some applications modify their proctitle, and you may need to use this to match them.
 
 
 
@@ -190,11 +209,11 @@ The "Program" section has the following properties:
 
 * maxrestarts - Default 0, integer on the max number of times usrsvcd will try to automatically restart the application by "usrsvcd". If it is seen running again naturally, this counter will reset. 0 means unlimited restarts.
 
-* restart\_delay - Default 0, integer on the miminum number of seconds between a failing "start" and the next "restart" attmept by "usrsvcd". 
+* restart_delay - Default 0, integer on the miminum number of seconds between a failing "start" and the next "restart" attmept by "usrsvcd". 
 
-* success\_seconds - Default 2, Float on the number of seconds the application must be running for "usrsvc" to consider it successfully started.
+* success_seconds - Default 2, Float on the number of seconds the application must be running for "usrsvc" to consider it successfully started.
 
-* term\_to\_kill\_seconds : Default 8, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
+* term_to_kill_seconds : Default 8, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
 
 
 
@@ -206,7 +225,8 @@ NOTE: The following stdout/stderr are opened in "append" mode always.
 
 * defaults - This can reference a "DefaultSettings" section defined elsewhere, i.e. to reference [DefaultSettings:MySettings] use "defaults=MySettings". If provided, this Program will inherit the settings defined in the DefaultSettings as the defaults. Anything provided explicitly in this Program will override those found in the defaults.
 
-* inherit\_env - Boolean, default True. If True, will inherit the env from "usrsvc" or "usrsvcd". Otherwise, will only use the Env as defined in the Env subsection.
+* inherit_env - Boolean, default True. If True, will inherit the env from "usrsvc" or "usrsvcd". Otherwise, will only use the Env as defined in the Env subsection.
+
 
 
 "Program" Supports the following subsections:
@@ -225,15 +245,23 @@ A series of key=value items which will be present in the environment prior to st
 
 	[Program:myprogram]
 
+
 	command = /home/myusr/bin/myprogram
+
 	pidfile = /home/myusr/pids/myprogram.pid
+
 	stdout  = /home/myusr/logs/myprogram.log
+
 	stderr  = stdout
+
 
 	[[Env]]
 
+
 		DB_USER = superdb
+
 		DB_NAME = mydatabase
+
 
 
 **[DefaultSettings:mydefaults]**
@@ -249,10 +277,10 @@ Note, additional Monitoring types will be available in a future release.
 
 Monitor can contain the following properties:
 
-* monitor\_after - Minimum number of seconds that program needs to be running before monitoring will begin. Default 30. 0 disables this feature.
+* monitor_after - Minimum number of seconds that program needs to be running before monitoring will begin. Default 30. 0 disables this feature.
 
-* activityfile - File or Directory which must be modified every #activityfile\_limit# seconds, or program will be restarted. Default undefined/empty string disables this.
+* activityfile - File or Directory which must be modified every #activityfile_limit# seconds, or program will be restarted. Default undefined/empty string disables this.
 
-* activityfile\_limit - If activityfile is defined, this is the number of seconds is the maximum that can go between modifications of the provided #activityfile# before triggering a restart.
+* activityfile_limit - If activityfile is defined, this is the number of seconds is the maximum that can go between modifications of the provided #activityfile# before triggering a restart.
 
 

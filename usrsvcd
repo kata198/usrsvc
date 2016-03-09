@@ -1,0 +1,527 @@
+#!/usr/bin/env python
+'''
+    Copyright (c) 2016 Tim Savannah All Rights Reserved.
+    This software is licensed under the terms of the GPLv3, with additions/modifications.
+    This may change at my discretion, retroactively, and without notice.
+
+    You should have received a copy of this with the source distribution as a file titled, LICENSE,
+    and additions in a file titled LICENSE.additions. 
+
+    In any situation that LICENSE.additions 
+
+    The most current license can be found at:
+    https://github.com/kata198/usrsvc/LICENSE
+
+    and additions/modifications at:
+    https://github.com/kata198/usrsvc/LICENSE.additions
+
+    This location may need to be changed at some point in the future, in which case
+    you are may email Tim Savannah <kata198 at gmail dot com>, or find them on the
+    current website intended for distribution of usrsvc.
+
+
+    usrsvcd is the daemon associated with usrsvc. It keeps processes running, handles monitoring, etc.
+'''
+
+
+
+import os
+import sys
+import signal
+import subprocess
+import threading
+import time
+import traceback
+
+from collections import defaultdict
+
+from usrsvcmod.UsrsvcConfig import UsrsvcConfig
+from usrsvcmod.Program import Program
+from usrsvcmod.ProgramActions import getRunningProgram
+from usrsvcmod.logging import logMsg, logErr
+from usrsvcmod.debug import isDebugEnabled, toggleDebug
+from usrsvcmod.constants import ReturnCodes
+
+def printUsage():
+    sys.stderr.write('''Usage: usrsvcd (Optional: [action])
+Optional daemon portion of usrsvc which actively monitors processes and provides the autostart/autorestart, and other optional features.
+
+  Actions:
+    Running with no arguments starts the usrsvcd daemon. You can also provide one of several "action" arguments which affect the running instance of usrsvcd.
+
+      checkconfig            -   Try to parse config files and validate correctness, without affecting the running usrsvcd instance. Returns non-zero on failure.
+      reread                 -   Sends SIGUSR1 to the running usrsvcd process, which will cause it to reread configs and immediately apply the changes to the running instance.
+                                    If there are errors in the configs, a message will be logged by the usrsvcd process and it will retain its current configuration state.
+      restart                -   Restarts the usrsvcd daemon cleanly
+      status                 -   Checks if usrsvcd is running. Returns non-zero on failure
+
+Uses main config file in $HOME/usrsvc.cfg ''')
+    sys.stderr.write('( %s/%s )\n' %(os.environ['HOME'], '/usrsvc.cfg'))
+
+
+# Global config, so all methods get the reload
+global config
+config = None
+
+# Global flag for graceful termination
+global keepGoing
+keepGoing = True
+
+# Global list of processes we are currently restarting, so we don't flood it with extra actions.
+#  This is not 100%, there is a slight race, but should not matter (at worst, a double start is issued)
+global restarting
+restarting = set()
+
+def handle_sigterm(*args, **kwargs):
+    '''
+        handle_sigterm - SIGTERM handler. Sets the "keepGoing" global to False, which gracefully terminates everything after current opset.
+    '''
+    global keepGoing
+    keepGoing = False
+
+    logErr('usrsvcd got SIGTERM, shutting down.\n')
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    return True
+ 
+
+def rereadConfig(*args, **kwargs):
+    '''
+        rereadConfig - handler for SIGUSR1. Rereads the config, and if it all parses updates the global "config"
+            since each "main loop" iteration should reread from that variable, this will affect the next opset.
+    '''
+    global config
+
+    logMsg('Got SIGUSR1, reprocessing config.\n')
+
+    config2 = getConfig()
+    if not config2:
+        return
+
+    config = config2
+    configureStdoutStderr(config.mainConfig)
+    
+
+def getConfig():
+    '''
+        getConfig - Parses and returns the config object.
+            If parsing error, an error is logged and None is returned.
+    '''
+    configPath = os.environ['HOME'] + '/usrsvc.cfg'
+
+    if not os.path.exists(configPath) or not os.access(configPath, os.R_OK):
+        logErr('Missing config file: %s\n' %(configPath,))
+        return None
+
+    config = UsrsvcConfig(os.environ['HOME'] + '/usrsvc.cfg')
+    try:
+        config.parse()
+    except ValueError as e:
+        logErr('Error in configuration: %s\n' %(str(e),))
+        return None
+
+    return config
+    
+def getUsrsvcdProg():
+    '''
+        getUsrsvcdProg - get the Program object representing usrsvcd, as found in the pid file.
+            None if no match.
+    '''
+    global config
+
+    mainPidFile = config.mainConfig.pidfile
+    try:
+        prog = Program.createFromPidFile(mainPidFile)
+        if prog and 'usrsvcd' in prog.cmdline:
+            return prog
+    except:
+        pass
+
+    return None
+
+
+def configureStdoutStderr(mainConfig):
+    '''
+        configureStdoutStderr - Configures new stdout and stderr based on the "MainConfig"
+            If there's an issue, the previous is retained, otherwise it is closed.
+
+            @param mainConfig - The "Main" config (config.mainConfig) object
+    '''
+    # Configure new stdout and stderr. If there's an issue, the previous is retained, otherwise it is closed.
+    if mainConfig.usrsvcd_stdout:
+        oldstdout = sys.stdout
+        try:
+            sys.stdout = open(mainConfig.usrsvcd_stdout, 'at')
+        except:
+            logErr('Cannot open usrsvcd_stdout ( %s ) for writing.\n' %(mainConfig.usrsvcd_stdout,))
+            return ReturnCodes.INSUFFICIENT_PERMISSIONS
+        try:
+            oldstdout.close()
+        except:
+            pass
+    
+    if mainConfig.usrsvcd_stderr:
+        oldstderr = sys.stderr
+        val = mainConfig.usrsvcd_stderr
+        if val == 'stdout':
+            sys.stderr = sys.stdout
+        else:
+            try:
+                sys.stderr = open(mainConfig.usrsvcd_stderr, 'at')
+            except:
+                logErr('Cannot open usrsvcd_stderr ( %s ) for writing.\n' %(mainConfig.usrsvcd_stderr,))
+                return ReturnCodes.INSUFFICIENT_PERMISSIONS
+        try:
+            oldstderr.close()
+        except:
+            pass
+                
+
+    return ReturnCodes.SUCCESS
+
+def handleArg(arg):
+    '''
+        handleArg - Handle if we started the application with a single argument.
+    '''
+    global config
+
+    if arg == 'checkconfig':
+        config = getConfig()
+        if not config:
+            return ReturnCodes.INVALID_CONFIG
+
+        return ReturnCodes.SUCCESS
+
+    elif arg == 'status':
+        config = getConfig()
+        if not config:
+            logErr('Error in config, cannot check status.\n')
+            return ReturnCodes.INVALID_CONFIG
+        usrsvcdProg = getUsrsvcdProg()
+        if not usrsvcdProg:
+            logErr('usrsvcd is not running.\n')
+            return ReturnCodes.GENERAL_FAILURE
+        logMsg('usrsvcd is running:\n\n%s\n' %(str(usrsvcdProg),))
+        return ReturnCodes.SUCCESS
+
+    elif arg == 'reread':
+        config = getConfig()
+        if not config:
+            logErr('Error in config, cannot continue.\n')
+            return ReturnCodes.INVALID_CONFIG
+        usrsvcdProg = getUsrsvcdProg()
+        if not usrsvcdProg:
+            logErr('usrsvcd is not running.\n')
+            return ReturnCodes.SUCCESS # Not an error condition, because the changes will be applied whenever usrsvcd is started.
+        os.kill(usrsvcdProg.pid, signal.SIGUSR1)
+        return ReturnCodes.SUCCESS
+
+    elif arg == 'restart':
+        config = getConfig()
+        if not config:
+            logErr('Error in config, cannot continue.\n')
+            return ReturnCodes.INVALID_CONFIG
+        usrsvcdProg = getUsrsvcdProg()
+        if usrsvcdProg:
+            try:
+                os.kill(usrsvcdProg.pid, signal.SIGTERM)
+            except:
+                # could not send sigterm?
+                if os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
+                    logErr('Cannot terminate existing usrsvcd process:\n\n%s\n' %(str(usrsvcdProg),))
+                    return ReturnCodes.GENERAL_FAILURE
+
+            # Wait for process to die cleanly.
+            time.sleep(.1)
+            now = time.time()
+            maxWait = now + 5.0
+            while os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
+                time.sleep(.1)
+                if time.time() > maxWait:
+                    # Took too long, send it sig kill.
+                    try:
+                        os.kill(usrsvcdProg.pid, signal.SIGKILL)
+                    except:
+                        pass
+                    break
+        subprocess.Popen(['usrsvcd'], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
+        return ReturnCodes.SUCCESS
+    else:
+        logErr('Unknown command: %s\n' %(arg,))
+        return ReturnCodes.INVALID_ACTION
+        
+
+
+
+def doMonitoring():
+    '''
+        doMonitoring - Thread start for monitoring thread.
+
+            This thread can block restarts on the global handler, as its actions are preferred. This is based on the global set, "restarting"
+
+            Otherwise, it starts with a short delay (to let the main thread pick up), then runs through configured programs performing monitoring operations.
+    '''
+    global config
+    global keepGoing
+    global restarting
+
+    # Wait a bit at first for us to roll through the apps
+#    time.sleep(8)
+    for i in range(8):
+        time.sleep(1)
+        if keepGoing is False:
+            return
+    restartProcesses = {}
+
+    # TODO: We can be extra paranoid and have restarting be a dict of programName -> time. After a timeout, we can assert there was some unrecoverable issue with the restart operation and not continue to block the main thread.
+    while keepGoing is True:
+        try:
+            programConfigs = config.getProgramConfigs()
+            for programName, programConfig in programConfigs.items():
+                if programName in restartProcesses:
+                    try:
+                        # Try/except here, incase an OOM or otherwise breaks the poll, we hold on tight.
+                        if restartProcesses[programName].poll() is None:
+                            continue
+                    except:
+                        if isDebugEnabled():
+                            logErr('DEBUG: Got exception in monitoring polling %s: %s\n' %(programName, str(e),))
+                            traceback.print_exc()
+
+                    del restartProcesses[programName]
+                    restarting.remove(programName)
+                    continue # We can just skip here, it just completed a restart. Give it a chance to get goin'
+
+                if not programConfig.Monitoring.isMonitoringActive():
+                    continue
+
+                runningProgram = None
+                try:
+                    runningProgram = getRunningProgram(programConfig)
+                except:
+                    pass
+
+                if not runningProgram:
+                    # Program is not running, so let the main thread get it.
+                    continue
+
+                monitorAfter = programConfig.Monitoring.monitor_after
+                if monitorAfter:
+                    startTime = runningProgram.getStartTime()
+                    if startTime and (time.time() - startTime) < monitorAfter:
+                        # Program has not been running long enough to monitor, so wait.
+                        continue
+
+                # TODO: When we get more monitoring types, these actions should be broken into modules.
+                doRestart = False
+                if programConfig.Monitoring.activityfile:
+                    activityFile = programConfig.Monitoring.activityfile
+                    try:
+                        if not os.path.exists(activityFile):
+                            logMsg('Restarting %s because activity file ( %s ) does not exist\n' %(programName, activityFile,))
+                            doRestart = True
+                        if doRestart is False:
+                            lastModified = os.stat(activityFile).st_mtime
+                            threshold = time.time() - programConfig.Monitoring.activityfile_limit
+                            if lastModified < threshold:
+                                logMsg('Restarting %s because it has not modified activity file ( %s ) in %d seconds. Limit is %d.\n' %(programName, activityFile, int(threshold - lastModified), programConfig.Monitoring.activityfile_limit))
+                                doRestart = True
+                    except:
+                        # We got an exception, just try again.
+                        continue
+
+                if doRestart is True:
+                    restarting.add(programName)
+                    restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
+        except:
+            # If we get an exception, don't fail. Just try, try again.
+            if isDebugEnabled():
+                logErr('DEBUG: Got exception in monitoring main loop: %s\nlocals:\n%s\n' %(str(e), str(locals())))
+                traceback.print_exc()
+
+        # Break out the 5 second sleep into 2+2+1, so we can gracefully terminate quicker.
+        #time.sleep(5)
+        time.sleep(2)
+        if keepGoing is False:
+            break
+        time.sleep(2)
+        if keepGoing is False:
+            break
+        time.sleep(1)
+
+    return
+
+
+
+
+if __name__ == '__main__':
+    if '--help' in sys.argv:
+        printUsage()
+        sys.exit(ReturnCodes.GENERAL_FAILURE)
+
+
+    args = sys.argv[1:]
+    if '--debug' in args:
+        args.remove('--debug')
+        toggleDebug(True)
+
+    if len(args) > 1:
+        logErr('Too many arguments.\n\n')
+        printUsage()
+        sys.exit(ReturnCodes.GENERAL_FAILURE)
+    
+    if args:
+        # They provided an action. This function will return the exit code
+        try:
+            sys.exit(handleArg(args[0]))
+        except Exception as e:
+            logErr('Got exception handling arg: %s\n' %(str(e),))
+            traceback.print_exc()
+            sys.exit(ReturnCodes.UNKNOWN_FAILURE)
+            
+            
+    config = getConfig()
+    if config is None:
+        sys.exit(ReturnCodes.INVALID_CONFIG)
+
+
+    mainPidFile = config.mainConfig.pidfile
+    usrsvcdProg = getUsrsvcdProg()
+    if usrsvcdProg:
+        logErr('usrsvcd is already running:\n\n%s\n' %(str(usrsvcdProg),))
+        sys.exit(ReturnCodes.USRSVCD_ALREADY_RUNNING)
+
+    # Ok, no other process is running, we are good to go. Fork and exit parent. Child continues.
+    pid = os.fork()
+    if pid != 0:
+        sys.exit(ReturnCodes.SUCCESS)
+
+    logMsg('usrsvcd started as pid: %d\n' %(os.getpid(),))
+
+    status = configureStdoutStderr(config.mainConfig)
+    if status:
+        sys.exit(status)
+
+    if config.mainConfig.usrsvcd_stdout:
+        # We changed stdout, log there too.
+        logMsg('usrsvcd started as pid: %d\n' %(os.getpid(),))
+
+    try:
+        with open(mainPidFile, 'wt') as f:
+            f.write(str(os.getpid()) + '\n')
+    except Exception as e:
+        logErr('Failed to write PID file ( %s ): %s\n' %(mainPidFile, str(e)))
+        sys.exit(ReturnCodes.INSUFFICIENT_PERMISSIONS)
+     
+
+
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+    signal.signal(signal.SIGUSR1, rereadConfig)
+    signal.signal(signal.SIGTERM, handle_sigterm)
+#    config = UsrsvcConfig(os.environ['HOME'] + '/usrsvc.cfg')
+#    config.parse()
+
+    # TODO: programWasStarted and programWasSeenRunning may be able to be consolidated into one variable.
+    programWasStarted = {}
+    programWasSeenRunning = set()
+    programLastRestartAttemptAt = {}
+
+    # Number of start attempts per app. Resets to 0 after a successful start.
+    numStartAttempts = defaultdict(int)
+
+    startProcesses = {}
+
+    monitoringThread = threading.Thread(target=doMonitoring)
+    monitoringThread.start()
+
+    ### START MAIN LOOP  ###
+    while keepGoing is True:
+        programConfigs = config.getProgramConfigs()
+        for programName, programConfig in programConfigs.items():
+            try:
+                if programName in restarting:
+                    continue
+
+                if programName in startProcesses:
+                    # We ensure that we don't tag the program running when it is still starting by waiting for the pipe to finish.
+                    #  usrsvc waits "success_seconds" before determining success.
+                    pollResult = startProcesses[programName].poll()
+                    if pollResult is None:
+                        continue
+                    del startProcesses[programName]
+
+                    if pollResult != 0:
+                        logErr('WARNING: The command "usrsvc start %s" returned non-zero: %d\n' %(programName, pollResult))
+
+                # This goes after the thread check, incase they reload config and change autostart we don't leave a subprocess
+                if programConfig.enabled is False or programConfig.autostart is False and programConfig.autorestart is False:
+                    # If they don't want this managed by usrsvcd, continue to next program
+                    continue
+
+
+                prog = None
+                try:
+                    prog = getRunningProgram(programConfig)
+                except:
+                    pass
+
+                # Record if we found this program started or stopped, for purposes of "autostart" and "autorestart"
+                if programName not in programWasStarted:
+                    programWasStarted[programName] = bool(prog is not None)
+
+                if prog is not None: 
+                    # Program is running, nothing to see here, move along.
+                    if programName not in programWasSeenRunning:
+                        programWasSeenRunning.add(programName)
+                    # Reset our "failed start" counter
+                    numStartAttempts[programName] = 0
+                    continue
+
+                # Check if we have exceeded the max number of restarts, since last time it was started.
+                if programConfig.maxrestarts and numStartAttempts[programName] >= programConfig.maxrestarts:
+                    if numStartAttempts[programName] == programConfig.maxrestarts:
+                        # If we equal this number, this is the first time we have exceeded max restarts.
+                        logMsg('%s has reached the maximum number of restarts %d. Further restarts will not be attempted until the process is seen running again (so manually fix, and run "usrsvc start %s").\n' %(programName, programConfig.maxrestarts, programName))
+                        numStartAttempts[programName] += 1
+                    continue
+
+                doStart = False
+                isRestart = False
+
+                if programConfig.autostart is True and programWasStarted[programName] is False:
+                    # Process was not running when we started, and autostart is True, so start it.
+                    logMsg("%s was not running and autostart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
+                    programWasStarted[programName] = True
+                    doStart = True
+                elif programConfig.autorestart is True and (programName in programWasSeenRunning or programWasStarted[programName] is True):
+                    # We saw this process running at least once, so autorestart should apply.
+                    if programConfig.restart_delay:
+                        if programName in programLastRestartAttemptAt:
+                            logMsg('[%s] - last restart = %f   delay time = %f\n' %(programName, programLastRestartAttemptAt[programName], (time.time() - programConfig.restart_delay)))
+                            if programLastRestartAttemptAt[programName] > (time.time() - programConfig.restart_delay):
+                                continue
+                    logMsg("%s has stopped running, and autorestart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
+                    doStart = True
+                    isRestart = True
+
+                if doStart is True and not programName in restarting:
+                    numStartAttempts[programName] += 1
+                    if isRestart is True:
+                        # We should always do this, whether or not restart_delay is set now, for config-reload reasons.
+                        programLastRestartAttemptAt[programName] = time.time()
+
+                    startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
+            except Exception as e:
+                # If we got a non-specific exception, assume something happened like something restarted the process outside of this loop, and ignore it.
+                if isDebugEnabled():
+                    logErr('DEBUG: Got global exception on main usrsvcd loop: %s\nlocals:\n%s\n' %(str(e), str(locals(), )) )
+                    traceback.print_exc()
+                pass
+
+
+        time.sleep(2) 
+
+    ### END MAIN LOOP  ###
+ 
+    # Join any threads, which should all be exiting when "keepGoing" switches to False.   
+    monitoringThread.join()

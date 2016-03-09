@@ -1,0 +1,138 @@
+#!/usr/bin/env python
+'''
+    Copyright (c) 2016 Tim Savannah All Rights Reserved.
+    This software is licensed under the terms of the GPLv3.
+    This may change at my discretion, retroactively, and without notice.
+
+    You should have received a copy of this with the source distribution as a file titled, LICENSE.
+
+    The most current license can be found at:
+    https://github.com/kata198/usrsvc/LICENSE
+
+    This location may need to be changed at some point in the future, in which case
+    you are may email Tim Savannah <kata198 at gmail dot com>, or find them on the
+    current website intended for distribution of usrsvc.
+
+    usrsvc is a user process manager
+'''
+
+
+import os
+import signal
+import sys
+import traceback
+
+from NamedAtomicLock import NamedAtomicLock
+
+from usrsvcmod.UsrsvcConfig import UsrsvcConfig
+from usrsvcmod.Program import Program
+from usrsvcmod.ProgramActions import getRunningProgram
+from usrsvcmod.logging import logMsg, logErr
+from usrsvcmod.constants import ReturnCodes
+
+def doAction(args):
+    action = args[0]
+    programName = args[1]
+    if programName == 'all':
+        # TODO: Provided a threaded/multiprocess means of start/stop/restart "all"
+        ret = 0
+        for singleProgramName in config.getProgramConfigs().keys():
+            try:
+                ret2 = doAction([action, singleProgramName])
+            except Exception as e:
+                logErr('Exception (%s) trying to %s %s\n' %(str(e.__class__.__name__), action, singleProgramName))
+                traceback.print_exc()
+                ret2 = ReturnCodes.UNKNOWN_FAILURE
+            if ret2 != 0:
+                ret = ret2
+        return ret
+    # TODO: Configurable lock dir? Or at least temp dir? The downside is, if the config changes we may have a double-held lock.
+    lock = NamedAtomicLock('.lock_usrsvc' + programName, maxLockAge=30)
+    if not lock.acquire(31):
+        logErr('Cannot acquire lock for %s. Is something else looping trying to access it? Try the command again.\n' %(programName,))
+        return ReturnCodes.TRY_AGAIN
+    ret = _doAction(args)
+    lock.release()
+    return ret
+
+def _doAction(args):
+    action = args[0]
+    programName = args[1]
+
+    try:
+        programConfig = config.getProgramConfig(programName)
+    except KeyError:
+        logErr('No such program: %s\n' %(programName,))
+        return ReturnCodes.PROGRAM_UNDEFINED
+
+    if programConfig.enabled is False and action != 'status':
+        logErr('Program %s is currently disabled in config. Only the "status" action is supported on disabled programs.\n' %(programName,))
+        return ReturnCodes.PROGRAM_DISABLED
+
+    if action == 'start':
+        prog = None
+        try:
+            prog = Program.createFromPidFile(programConfig.pidfile)
+        except:
+            pass
+
+        prog = getRunningProgram(programConfig)
+        if prog is not None:
+            logMsg('Program %s is already running:\n\n%s\n' %(programName, prog.__dict__))
+            return ReturnCodes.SUCCESS
+
+        prog = Program(programConfig.pidfile)
+        success = prog.startProgram(programConfig)
+        if success:
+            logMsg('Started %s:\n\n%s\n' %(programName, prog.__dict__))
+            return ReturnCodes.SUCCESS
+        else:
+            logErr('Failed to start %s!\n' %(programName,))
+            return ReturnCodes.PROGRAM_FAILED_TO_START
+
+    elif action == 'stop':
+        
+        prog = getRunningProgram(programConfig)
+        if prog:
+            logMsg('Stopping %s [%d]\n' %(programName, prog.pid))
+            actionTaken = prog.stopProgram(programConfig)
+            logMsg('%s %s\n' %(programName, actionTaken))
+        else:
+            logMsg('%s was not running.\n' %(programName,))
+        return ReturnCodes.SUCCESS
+    elif action == 'restart':
+        _doAction(['stop'] + args[1:])
+        return _doAction(['start'] + args[1:])
+    elif action == 'status':
+        prog = getRunningProgram(programConfig)
+        if prog:
+            logMsg('%s is running:\n\n%s\n' %(programName, str(prog.__dict__)))
+            return ReturnCodes.SUCCESS
+        else:
+            logErr('%s is NOT running\n' %(programName,))
+            return ReturnCodes.GENERAL_FAILURE
+    else:
+        logErr('Unknown action: %s\n' %(action,))
+        return ReturnCodes.INVALID_ACTION
+ 
+
+
+
+def printUsage():
+    sys.stderr.write('Usage: usrsvc [start/stop/restart/status] [program name]\n  Performs the requested action on the given program name.\n "all" can be used for start/stop/restart.\n\nUses the config file found at $HOME/usrsvc.cfg (%s)\n' %(os.environ['HOME'] + '/usrsvc.cfg'))
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 3 or '--help' in sys.argv:
+        printUsage()
+        sys.exit(ReturnCodes.GENERAL_FAILURE)
+
+    config = UsrsvcConfig(os.environ['HOME'] + '/usrsvc.cfg')
+    config.parse()
+
+    # Prevent signals from interrupting us
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+    sys.exit(doAction(sys.argv[1:]))
+
