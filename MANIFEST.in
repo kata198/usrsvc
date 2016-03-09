@@ -8,3 +8,5 @@ include requirements.txt
 include README.md
 include README.rst
 recursive-include usrsvcmod *.py
+recursive-include examples *.cfg
+recursive-include examples/cfg *.cfg
