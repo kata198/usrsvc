@@ -1,8 +1,25 @@
+'''
+    Copyright (c) 2016 Tim Savannah All Rights Reserved.
+    This software is licensed under the terms of the GPLv3.
+    This may change at my discretion, retroactively, and without notice.
+
+    You should have received a copy of this with the source distribution as a file titled, LICENSE.
+
+    The most current license can be found at:
+    https://github.com/kata198/usrsvc/LICENSE
+
+    This location may need to be changed at some point in the future, in which case
+    you are may email Tim Savannah <kata198 at gmail dot com>, or find them on the
+    current website intended for distribution of usrsvc.
+
+
+    constants for usrsvc
+'''
 
 try:
     from enum import IntEnum
 except ImportError:
-    # We only support 2.7+ anyway, but fallback for some reason.
+    # We only support 2.7+ anyway, but some older 2.7s don't have the enum type.
     IntEnum = object
 
 class ReturnCodes(IntEnum):
@@ -44,18 +61,37 @@ class ReturnCodes(IntEnum):
     # Unknown exception occured, state of program is unknown.
     UNKNOWN_FAILURE = 254
 
-    @classmethod
-    def returnCodeToString(cls, returnCodeValue):
-        try:
-            returnCodeValue = int(returnCodeValue)
-        except ValueError:
-            return 'INVALID_RETURN(%s)' %(str(returnCodeValue),)
-#            raise ValueError('returnCodeToString called with non-integer value: %s' %(str(returnCodeValue),))
-            # Should be an exception, but let's go for the more durable route.
+    if IntEnum != object:
+        # Preferred method using enum
+        @classmethod
+        def returnCodeToString(cls, returnCodeValue):
+            try:
+                returnCodeValue = int(returnCodeValue)
+            except ValueError:
+                # Should be an exception, but let's go for the more durable route.
+                return 'INVALID_RETURN(%s)' %(str(returnCodeValue),)
+                #raise ValueError('returnCodeToString called with non-integer value: %s' %(str(returnCodeValue),))
 
-        for item in cls:
-            if item.value == returnCodeValue:
-                return item.name
+            for item in cls:
+                if item.value == returnCodeValue:
+                    return item.name
 
-        return 'UNKNOWN(%d)' %(returnCodeValue,)
+            return 'UNKNOWN(%d)' %(returnCodeValue,)
+    else:
+        # Backup method for older pythons without enum
+        @classmethod
+        def returnCodeToString(cls, returnCodeValue):
+            try:
+                returnCodeValue = int(returnCodeValue)
+            except ValueError:
+                return 'INVALID_RETURN(%s)' %(str(returnCodeValue),)
+
+            for attrName in dir(cls):
+                attrValue = getattr(cls, attrName)
+                if not isinstance(attrValue, int):
+                    continue
+                if attrValue == returnCodeValue:
+                    return attrName
+
+            return 'UNKNOWN(%d)' %(returnCodeValue,)
 

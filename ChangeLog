@@ -1,3 +1,7 @@
+* 1.1.1 - Mar 11 2016
+- Turns out python 2.7.8 does not have the enum type, and we should support older python 2.7s, so 
+give a fallback method for returnCodeToString that doesn't rely on enum
+
 * 1.1.0 - Mar 11 2016
 - Add "--parallel" flag that can be used with "usrsvc start/stop/restart all"
 to perform the action in parallel instead of serially.
