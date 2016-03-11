@@ -4,7 +4,6 @@ usrsvc
 A user service manager. Intended for managing services/daemons running as service account users.
 
 
-
 Design
 ------
 
@@ -58,6 +57,9 @@ Each account has its own independent configurations, and runs its own instance o
 
 All of the configuration is through simple ini-style config files, and supports defining and inheriting default settings to prevent duplication across programs.
 
+**Verbose**
+
+Usrsvc and usrsvcd are very verbose with logging, and try to be as specific as possible. All logs contain timestamps and meaningful error codes/descriptions, to simplify and even make possible evaluation of issues with your services.
 
 usrsvc (tool)
 -------------
@@ -73,7 +75,9 @@ The "usrsvc" tool handles the basic operations of starting/stopping/restarting/s
 	Uses the config file found at $HOME/usrsvc.cfg
 
 
-The tool will output some basic information about what happened, and give a meaningful return code (0 = success, otherwise see https://raw.githubusercontent.com/kata198/usrsvc/master/usrsvcmod/constants.py "ReturnCodes" object for the list of return codes used)
+The tool will output some basic information about what happened, and give a meaningful return code (0 = success, otherwise see https://raw.githubusercontent.com/kata198/usrsvc/master/usrsvcmod/constants.py "ReturnCodes" object for the list of return codes used and descriptions).
+
+Usrsvc will be as verbose as possible in identifying why a program failed to start and stay running, to ease debugging.
 
 **Example Usage**
 
@@ -273,4 +277,14 @@ Examples
 --------
 
 An example configuration can be found in the "examples" directory ( https://github.com/kata198/usrsvc/tree/master/examples ). The "usrsvc.cfg" is the main configuration file (to be located in $HOME/usrsvc.cfg), and the "cfg" directory is intended to be "/home/myusr/usrsvc.d/cfg" (per config\_dir value in usrsvc.cfg
+
+Contact Me
+----------
+
+You may reach me for support, questions, feature requests, or just to let me know you're using it! Use the email kata198 at gmail.
+
+Changes
+-------
+
+The Changelog can be found at: https://raw.githubusercontent.com/kata198/usrsvc/master/ChangeLog
 

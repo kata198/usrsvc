@@ -22,6 +22,9 @@ import shlex
 import subprocess
 import time
 
+from .constants import ReturnCodes
+from .logging import logMsg, logErr
+
 __all__ = ('Program',)
 
 class Program(object):
@@ -209,7 +212,7 @@ class Program(object):
             if hasattr(statInfo, 'st_ctime') and statInfo.st_ctime:
                 return statInfo.st_ctime
             return statInfo.st_mtime
-        except Exception as e:
+        except Exception:
             pass
 
         return None
@@ -228,18 +231,21 @@ class Program(object):
         else:
             command = programConfig.command
 
-        success = True
         try:
             stdout = open(programConfig.stdout, 'at')
-        except:
-            raise ValueError('Cannot open %s for writing.' %(programConfig.stdout,))
+        except Exception as e:
+            logErr('(%s) - Cannot open stdout %s for writing: %s\n' %(programConfig.name, programConfig.stdout, str(e)))
+            return ReturnCodes.INSUFFICENT_PERMISSIONS
+#            raise ValueError('Cannot open %s for writing.' %(programConfig.stdout,))
         if programConfig.stdout == programConfig.stderr:
             stderr = stdout
         else:
             try:
                 stderr = open(programConfig.stderr, 'at')
-            except:
-                raise ValueError('Cannot open %s for writing.' %(programConfig.stderr,))
+            except Exception as e:
+                logErr('(%s) - Cannot open stderr %s for writing: %s\n' %(programConfig.name, programConfig.stderr, str(e)))
+                return ReturnCodes.INSUFFICENT_PERMISSIONS
+#                raise ValueError('Cannot open %s for writing.' %(programConfig.stderr,))
 
         if programConfig.inherit_env:
             env = os.environ
@@ -253,21 +259,29 @@ class Program(object):
 
         env.update(programConfig.Env)
 
-        pipe = subprocess.Popen(command, shell=useShell, stdout=stdout, stderr=stderr, stdin=devnull, env=env, close_fds=False)
+        try:
+            pipe = subprocess.Popen(command, shell=useShell, stdout=stdout, stderr=stderr, stdin=devnull, env=env, close_fds=False)
+        except Exception as e:
+            logErr('(%s) - Failed to run command ( %s ): %s\n' %(programConfig.name, str(command), str(e)))
+            return ReturnCodes.PROGRAM_FAILED_TO_LAUNCH
         
         now = time.time()
         successAfter = now + programConfig.success_seconds
 
+        success = True
+
         pollTime = min(programConfig.success_seconds, .1)
         while time.time() < successAfter:
             time.sleep(pollTime)
-            if pipe.poll() is not None:
+            pollResult = pipe.poll()
+            if pollResult is not None:
+                logErr('(%s) - Exited with code=%d\n' %(programConfig.name, pollResult))
                 success = False
                 break
 
         if success is False:
             # We've failed to restart after the given number of tries.
-            return False
+            return ReturnCodes.PROGRAM_EXITED_UNEXPECTEDLY
 
         # Started successfully, update our dict.
         self.pid = int(pipe.pid)
@@ -276,13 +290,13 @@ class Program(object):
         except:
             # Oh no! By some fluke, the program stopped running while we were setting it up. Return False....
             self.running = False
-            return False
+            return ReturnCodes.PROGRAM_EXITED_UNEXPECTEDLY
 
         self.running = True
 
         self.writePidFile(programConfig, self.pid)
 
-        return True
+        return ReturnCodes.SUCCESS
 
 
     def stopProgram(self, programConfig):
@@ -360,9 +374,13 @@ class Program(object):
         '''
 
         try:
-            os.unlink(programConfig.pidfile)
+            if os.path.exists(programConfig.pidfile):
+                os.unlink(programConfig.pidfile)
             return True
-        except:
+        except Exception as e:
+            if os.path.exists(programConfig.pidfile):
+                # Check again incase something else removed it, we only want to alert when we couldn't remove it.
+                logErr('(%s) Unable to remove pidfile %s: %s\n' %(programConfig.name, programConfig.pidfile, str(e)))
             return False
 
     def __str__(self):

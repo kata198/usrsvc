@@ -56,6 +56,8 @@ Optional daemon portion of usrsvc which actively monitors processes and provides
       status                 -   Checks if usrsvcd is running. Returns non-zero on failure
 
 
+Add --debug for extra development debugging prints
+
 See https://github.com/kata198/usrsvc/README.md for more documentation
 
 Uses main config file in $HOME/usrsvc.cfg ''')
@@ -154,8 +156,8 @@ def configureStdoutStderr(mainConfig):
         oldstdout = sys.stdout
         try:
             sys.stdout = open(mainConfig.usrsvcd_stdout, 'at')
-        except:
-            logErr('Cannot open usrsvcd_stdout ( %s ) for writing.\n' %(mainConfig.usrsvcd_stdout,))
+        except Exception as e:
+            logErr( 'Cannot open usrsvcd_stdout ( %s ) for writing: %s\n' %(mainConfig.usrsvcd_stdout, str(e)) )
             return ReturnCodes.INSUFFICIENT_PERMISSIONS
         try:
             oldstdout.close()
@@ -170,8 +172,8 @@ def configureStdoutStderr(mainConfig):
         else:
             try:
                 sys.stderr = open(mainConfig.usrsvcd_stderr, 'at')
-            except:
-                logErr('Cannot open usrsvcd_stderr ( %s ) for writing.\n' %(mainConfig.usrsvcd_stderr,))
+            except Exception as e:
+                logErr( 'Cannot open usrsvcd_stderr ( %s ) for writing: %s\n' %(mainConfig.usrsvcd_stderr, str(e)) )
                 return ReturnCodes.INSUFFICIENT_PERMISSIONS
         try:
             oldstderr.close()
@@ -227,10 +229,10 @@ def handleArg(arg):
         if usrsvcdProg:
             try:
                 os.kill(usrsvcdProg.pid, signal.SIGTERM)
-            except:
+            except Exception as e:
                 # could not send sigterm?
                 if os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
-                    logErr('Cannot terminate existing usrsvcd process:\n\n%s\n' %(str(usrsvcdProg),))
+                    logErr('Cannot terminate existing usrsvcd process (%s):\n\n%s\n' %(str(e), str(usrsvcdProg),))
                     return ReturnCodes.GENERAL_FAILURE
 
             # Wait for process to die cleanly.
@@ -249,7 +251,7 @@ def handleArg(arg):
         subprocess.Popen(['usrsvcd'], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
         return ReturnCodes.SUCCESS
     else:
-        logErr('Unknown command: %s\n' %(arg,))
+        logErr('Unknown action: %s\n' %(arg,))
         return ReturnCodes.INVALID_ACTION
         
 
@@ -454,7 +456,7 @@ if __name__ == '__main__':
                     del startProcesses[programName]
 
                     if pollResult != 0:
-                        logErr('WARNING: The command "usrsvc start %s" returned non-zero: %d\n' %(programName, pollResult))
+                        logErr( 'WARNING: The command "usrsvc start %s" returned non-zero: %d (%s)\n' %(programName, pollResult, ReturnCodes.returnCodeToString(pollResult)) )
 
                 # This goes after the thread check, incase they reload config and change autostart we don't leave a subprocess
                 if programConfig.enabled is False or programConfig.autostart is False and programConfig.autorestart is False:
@@ -500,7 +502,7 @@ if __name__ == '__main__':
                     # We saw this process running at least once, so autorestart should apply.
                     if programConfig.restart_delay:
                         if programName in programLastRestartAttemptAt:
-                            logMsg('[%s] - last restart = %f   delay time = %f\n' %(programName, programLastRestartAttemptAt[programName], (time.time() - programConfig.restart_delay)))
+#                            logMsg('[%s] - last restart = %f   delay time = %f\n' %(programName, programLastRestartAttemptAt[programName], (time.time() - programConfig.restart_delay)))
                             if programLastRestartAttemptAt[programName] > (time.time() - programConfig.restart_delay):
                                 continue
                     logMsg("%s has stopped running, and autorestart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))

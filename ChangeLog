@@ -1,2 +1,17 @@
+* 1.1.0 - Mar 11 2016
+- Add "--parallel" flag that can be used with "usrsvc start/stop/restart all"
+to perform the action in parallel instead of serially.
+- Instead of a flat "did" or "did not" start, capture more conditions on WHY
+we couldn't start a program
+- Much more logging in the realm of starting programs, relating to conditions
+of failure
+- Add more error codes to ReturnCodes for more specific reasons of failure
+- Implement ReturnCodes.returnCodeToString which will get the string
+representation of the return code.
+- Use the string representation of return codes in logging
+- Be more verbose in several places with logging
+- Change from raising exceptions in startProgram to returning relevant error
+code for better reporting
+
 * 1.0.0 - Mar 9 2016
 - Initial Beta Release
