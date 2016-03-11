@@ -32,7 +32,7 @@ if __name__ == '__main__':
         log_description = summary
 
     setup(name='usrsvc',
-            version='1.1.0',
+            version='1.1.1',
             packages=['usrsvcmod'],
             scripts=['usrsvc', 'usrsvcd'],
             author='Tim Savannah',
