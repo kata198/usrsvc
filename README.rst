@@ -75,6 +75,10 @@ The "usrsvc" tool handles the basic operations of starting/stopping/restarting/s
 
 	 "all" can be used for start/stop/restart.
 
+	When doing start/stop/restart all, you may add "--parallel" to perform the action on all items in parallel.
+
+	Return code when using "all" is 0 when all success, or 1 for any failure, and the failure codes will be printed to stderr.
+
 
 	Uses the config file found at $HOME/usrsvc.cfg
 
