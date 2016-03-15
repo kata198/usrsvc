@@ -35,12 +35,14 @@ import traceback
 
 from collections import defaultdict
 
-from usrsvcmod.UsrsvcConfig import UsrsvcConfig
-from usrsvcmod.Program import Program
-from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.logging import logMsg, logErr
 from usrsvcmod.debug import isDebugEnabled, toggleDebug
 from usrsvcmod.constants import ReturnCodes
+
+from usrsvcmod.UsrsvcConfig import UsrsvcConfig
+from usrsvcmod.Program import Program
+from usrsvcmod.ProgramActions import getRunningProgram
+from usrsvcmod.Monitoring.Factory import MonitoringFactory
 
 def printUsage():
     sys.stderr.write('''Usage: usrsvcd (Optional: [action])
@@ -316,25 +318,16 @@ def doMonitoring():
                         # Program has not been running long enough to monitor, so wait.
                         continue
 
-                # TODO: When we get more monitoring types, these actions should be broken into modules.
-                doRestart = False
-                if programConfig.Monitoring.activityfile:
-                    activityFile = programConfig.Monitoring.activityfile
-                    try:
-                        if not os.path.exists(activityFile):
-                            logMsg('Restarting %s because activity file ( %s ) does not exist\n' %(programName, activityFile,))
-                            doRestart = True
-                        if doRestart is False:
-                            lastModified = os.stat(activityFile).st_mtime
-                            threshold = time.time() - programConfig.Monitoring.activityfile_limit
-                            if lastModified < threshold:
-                                logMsg('Restarting %s because it has not modified activity file ( %s ) in %d seconds. Limit is %d.\n' %(programName, activityFile, int(threshold - lastModified), programConfig.Monitoring.activityfile_limit))
-                                doRestart = True
-                    except:
-                        # We got an exception, just try again.
-                        continue
+                # TODO: Some monitoring types are not async, and will need a standard means to define and use.
 
-                if doRestart is True:
+                asyncMonitors = MonitoringFactory.getAsyncMonitorsForProgram(programConfig)
+                if not asyncMonitors:
+                    continue
+
+                monitorResults = asyncMonitors.executeList()
+                
+                if monitorResults['doRestart'] is True:
+                    logErr('MONITOR: Restarting %s.\n\n%s\n' %(programName, str(monitorResults)))
                     restarting.add(programName)
                     restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
         except:
