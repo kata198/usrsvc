@@ -172,7 +172,7 @@ The process id found within the pidfile has its proctitle validated, to ensure i
 By default, a regular expression is generated from the command given to match the proctitle. If your application changes its proctitle, you will have to defined *proctitle_re* with a matching expression.
 
 
-If a pidfile is not found, or does not match, by default (when scan\_for\_process is True), all running processes by the same user will be scanned for one with a proctitle match. If a match is found, the process has been identified and a pidfile will be generated.
+If a pidfile is not found, or does not match, by default (when scan_for_process is True), all running processes by the same user will be scanned for one with a proctitle match. If a match is found, the process has been identified and a pidfile will be generated.
 
 
 Configuration
@@ -301,15 +301,28 @@ Monitor can contain the following properties:
 
 * monitor_after - Minimum number of seconds that program needs to be running before monitoring will begin. Default 30. 0 disables this feature.
 
+
+(Activity File Monitoring)
+
+The following two properties deal with "activity file" monitoring, that is ensuring that a file or directory is updated within a specified number of seconds.
+
+
 * activityfile - File or Directory which must be modified every #activityfile_limit# seconds, or program will be restarted. Default undefined/empty string disables this.
 
 * activityfile_limit - If activityfile is defined, this is the number of seconds is the maximum that can go between modifications of the provided #activityfile# before triggering a restart.
 
 
+(RSS Limit Monitoring)
+
+
+The following property triggers the "rss limit" monitor. This monitor checks the Resident Set Size (non-shared memory an application is using), and restarts if it exceeds a given threshold.
+
+* rss_limit - Default 0, if greater than zero, specifies the maximum RSS (resident set size) that a process may use before being restarted. This is the "private" memory (not including shared maps, etc) used by a process.
+
 Examples
 --------
 
-An example configuration can be found in the "examples" directory ( https://github.com/kata198/usrsvc/tree/master/examples ). The "usrsvc.cfg" is the main configuration file (to be located in $HOME/usrsvc.cfg), and the "cfg" directory is intended to be "/home/myusr/usrsvc.d/cfg" (per config\_dir value in usrsvc.cfg
+An example configuration can be found in the "examples" directory ( https://github.com/kata198/usrsvc/tree/master/examples ). The "usrsvc.cfg" is the main configuration file (to be located in $HOME/usrsvc.cfg), and the "cfg" directory is intended to be "/home/myusr/usrsvc.d/cfg" (per config_dir value in usrsvc.cfg
 
 Contact Me
 ----------
