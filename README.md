@@ -125,6 +125,7 @@ The *usrsvcd* daemon handles the autostart, autorestart, and monitoring of the c
 										If there are errors in the configs, a message will be logged by the usrsvcd process and it will retain its current configuration state.
 			restart                -   Restarts the usrsvcd daemon cleanly
 			status                 -   Checks if usrsvcd is running. Returns non-zero on failure
+			stop                   -   Stops running instance of usrsvcd
 
 	Uses main config file in $HOME/usrsvc.cfg
 
