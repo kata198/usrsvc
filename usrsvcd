@@ -250,7 +250,10 @@ def handleArg(arg):
                     except:
                         pass
                     break
-        subprocess.Popen(['usrsvcd'], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
+        cmd = ['usrsvcd']
+        if isDebugEnabled():
+            cmd.append('--debug')
+        subprocess.Popen(cmd, shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
         return ReturnCodes.SUCCESS
     else:
         logErr('Unknown action: %s\n' %(arg,))
@@ -324,13 +327,13 @@ def doMonitoring():
                 if not asyncMonitors:
                     continue
 
-                monitorResults = asyncMonitors.executeList()
+                monitorResults = asyncMonitors.executeList(runningProgram)
                 
                 if monitorResults['doRestart'] is True:
                     logErr('MONITOR: Restarting %s.\n\n%s\n' %(programName, str(monitorResults)))
                     restarting.add(programName)
                     restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
-        except:
+        except Exception as e:
             # If we get an exception, don't fail. Just try, try again.
             if isDebugEnabled():
                 logErr('DEBUG: Got exception in monitoring main loop: %s\nlocals:\n%s\n' %(str(e), str(locals())))
@@ -394,6 +397,8 @@ if __name__ == '__main__':
         sys.exit(ReturnCodes.SUCCESS)
 
     logMsg('usrsvcd started as pid: %d\n' %(os.getpid(),))
+    if isDebugEnabled():
+        logMsg('DEBUG IS ENABLED!\n')
 
     status = configureStdoutStderr(config.mainConfig)
     if status:

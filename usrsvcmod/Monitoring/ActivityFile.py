@@ -13,7 +13,7 @@
     current website intended for distribution of usrsvc.
 
 
-    ActivityFileMonitoring - Asserts that a specific file or directory should be modified within a certain threshold
+    ActivityFileMonitor - Asserts that a specific file or directory should be modified within a certain threshold
 '''
 
 import os
@@ -25,9 +25,9 @@ from ..logging import logMsg, logErr
 # TODO: We need to implement the check here as launching and joining on a thread, so that we don't lockup all monitoring if someone
 #  uses an NFS file on a disconnected device or anything else that will result in an indefinite uninterruptable ("D") state.
 
-class ActivityFileMonitoring(MonitoringBase):
+class ActivityFileMonitor(MonitoringBase):
     '''
-        ActivityFileMonitoring - Class for doing activity file monitoring
+        ActivityFileMonitor - Class for doing activity file monitoring
     '''
 
     def __init__(self, programName, activityFile, activityFileLimit):
@@ -42,7 +42,12 @@ class ActivityFileMonitoring(MonitoringBase):
 
         return cls(programConfig.name, programConfig.Monitoring.activityfile, programConfig.Monitoring.activityfile_limit)
 
-    def shouldRestart(self):
+    def shouldRestart(self, program=None):
+        '''
+            Returns True if activity file has not been modified within the threshold specified by activityfile_limit (should restart), otherwise False.
+
+            @param program - unused.
+        '''
         activityFile = self.activityFile
         activityFileLimit = self.activityFileLimit
         programName = self.programName

@@ -17,11 +17,13 @@
 '''
 
 from . import MonitoringList
-from .ActivityFile import ActivityFileMonitoring
+from .ActivityFile import ActivityFileMonitor
+from .RSSLimit import RSSLimitMonitor
+
 from ..logging import logErr
 
 
-ALL_MONITORING_CLASSES = [ActivityFileMonitoring]
+ALL_MONITORING_CLASSES = [ActivityFileMonitor, RSSLimitMonitor]
 
 
 class MonitoringFactory(object):

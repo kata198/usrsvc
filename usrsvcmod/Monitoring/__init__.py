@@ -41,9 +41,11 @@ class MonitoringBase(object):
         '''
         raise NotImplementedError('Monitor %s does not implement createFromConfig.' %(str(cls.__name__), ))
 
-    def shouldRestart(self):
+    def shouldRestart(self, program):
         '''
             shouldRestart - Run the test, and check if we should restart the app.
+
+            @param program <usrsvcmod.Program> - The Program instance representing the running program being monitored. May not be required for all checks
 
             @return <bool> - True if we should trigger a restart.
         '''
@@ -55,9 +57,11 @@ class MonitoringList(list):
         MonitoringList - A list of monitors. Has functions to simplify common usage
     '''
 
-    def executeList(self):
+    def executeList(self, program):
         '''
             executeList - Runs the monitors in order until all have been completed or one fails.
+
+            @param program <usrsvcmod.Program> - The Program instance representing the Program to monitor
 
             @return <dict> - {
                 'doRestart' : <bool> - True if we should trigger a restart, otherwise False.
@@ -77,7 +81,7 @@ class MonitoringList(list):
         for mon in self:
             ret['numRan'] += 1
             try:
-                shouldRestart = mon.shouldRestart()
+                shouldRestart = mon.shouldRestart(program)
                 if shouldRestart is True:
                     break
             except Exception as e: 
