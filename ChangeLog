@@ -4,7 +4,8 @@
 program to restart if it exceeds that many kB of Resident Set Size (private
 memory)
 - Some fixes and improvements to using --debug
-
+- Set a maximum 3-second timeout to run monitors per program, so some issue
+with some monitor is isolated
 
 
 

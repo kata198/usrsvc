@@ -19,6 +19,8 @@
 import os
 import time
 
+from func_timeout import FunctionTimedOut
+
 from . import MonitoringBase
 from ..logging import logMsg, logErr
 
@@ -61,13 +63,16 @@ class ActivityFileMonitor(MonitoringBase):
             if not os.path.exists(activityFile):
                 logMsg('Restarting %s because activity file ( %s ) does not exist\n' %(programName, activityFile,))
                 return True
-
             # Gather the mtime and see if we are past the threshold
             lastModified = os.stat(activityFile).st_mtime
             threshold = float(time.time() - self.activityFileLimit)
             if lastModified < threshold:
                 logMsg('Restarting %s because it has not modified activity file ( %s ) in %.4f seconds. Limit is %d.\n' %(programName, activityFile, float(threshold - lastModified), activityFileLimit))
                 return True
+        except FunctionTimedOut:
+            logErr('MONITOR: ActivityFile timed out on %s\n' %(programName,))
+            raise
+
         except Exception as e:
             # If we got an exception, just log and try again next round.
             logErr('Got an exception in activity file monitoring. Not restarting program. Program="%s" activityfile="%s"\nlocals: %s\n' %(programName, activityFile, str(locals())))

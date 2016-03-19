@@ -16,8 +16,12 @@
     RSSLimitMonitor - Monitor maximum RSS (Resident Set Size)
 '''
 
+from func_timeout import FunctionTimedOut
+
 from . import MonitoringBase
 from ..logging import logMsg, logErr
+
+
 
 try:
     import resource
@@ -62,6 +66,9 @@ class RSSLimitMonitor(MonitoringBase):
             if rssKB > self.rssLimit:
                 logMsg('Restarting %s because RSS size %dkB exceeds limit of %dkB' %(self.programName, rssKB, rssLimit))
                 return True
+        except FunctionTimedOut:
+            logErr('MONITOR: RSSLimit timed out on %s\n' %(programName,))
+            raise
         except Exception as e:
             # If we got an exception, just log and try again next round.
             logErr('Got an exception in RSS monitoring. Not restarting program. Program="%s"\n%s\nlocals: %s\n' %(self.programName, str(program), str(locals())))

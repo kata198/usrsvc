@@ -44,6 +44,8 @@ from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.Monitoring.Factory import MonitoringFactory
 
+from func_timeout import func_timeout, FunctionTimedOut
+
 def printUsage():
     sys.stderr.write('''Usage: usrsvcd (Optional: [action])
 Optional daemon portion of usrsvc which actively monitors processes and provides the autostart/autorestart, and other optional features.
@@ -329,7 +331,11 @@ def doMonitoring():
                 if not asyncMonitors:
                     continue
 
-                monitorResults = asyncMonitors.executeList(runningProgram)
+                try:
+                    monitorResults = func_timeout(3, asyncMonitors.executeList, args=(runningProgram,))
+                except FunctionTimedOut as fte:
+                    logErr('MONITOR: Timed out (3 seconds) running checks on %s (%s)\n' %(programName, str(fte)))
+                    continue
                 
                 if monitorResults['doRestart'] is True:
                     logErr('MONITOR: Restarting %s.\n\n%s\n' %(programName, str(monitorResults)))
