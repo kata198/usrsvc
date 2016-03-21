@@ -1,4 +1,4 @@
-* 1.2.0 - ??? ?? ????
+* 1.2.0 - Mar 21 2016
 - Refactoring of Monitoring to allow more and better monitoring
 - Add new property to Monitoring, rss_limit, which if specified will cause the
 program to restart if it exceeds that many kB of Resident Set Size (private
