@@ -30,7 +30,7 @@ class MainConfig(object):
 
     def __init__(self, config_dir=None, pidfile=None, usrsvcd_stdout=None, usrsvcd_stderr=None, **kwargs):
         if kwargs:
-            raise ValueError('Unknown config options in Main section: %s\n' %(str(kwargs.keys()),))
+            raise ValueError('Unknown config options in Main section: %s\n' %(str(list(kwargs.keys())),))
 
         if config_dir:
             if config_dir[0] != '/':

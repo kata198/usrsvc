@@ -1,3 +1,7 @@
+* 1.2.1 - Apr 28 2016
+- Fix README path
+- Ensure dict keys when printed in error messages are str(list) instead of just str() because python3 otherwise adds "dict_keys(['blah'])" to the str.
+
 * 1.2.0 - Mar 21 2016
 - Refactoring of Monitoring to allow more and better monitoring
 - Add new property to Monitoring, rss_limit, which if specified will cause the

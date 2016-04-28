@@ -61,9 +61,7 @@ Optional daemon portion of usrsvc which actively monitors processes and provides
       stop                   -   Stops running instance of usrsvcd
 
 
-Add --debug for extra development debugging prints
-
-See https://github.com/kata198/usrsvc/README.md for more documentation
+See https://github.com/kata198/usrsvc/blob/master/README.md for more documentation
 
 Uses main config file in $HOME/usrsvc.cfg ''')
     sys.stderr.write('( %s/%s )\n' %(os.environ['HOME'], 'usrsvc.cfg'))

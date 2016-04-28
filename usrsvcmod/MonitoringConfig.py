@@ -50,7 +50,7 @@ class MonitoringConfig(object):
             raise ValueError('rss_limit must be 0 to disable, or a positive integer for maximum kB of Resident Set Size')
 
         if kwargs:
-            raise ValueError('Unknown configuration options in Monitoring section: %s' %(str(kwargs.keys()),))
+            raise ValueError('Unknown configuration options in Monitoring section: %s' %(str(list(kwargs.keys())),))
 
 
     def isMonitoringActive(self):

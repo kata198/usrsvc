@@ -155,17 +155,15 @@ def doActionAndExit(args):
 def printUsage():
     sys.stderr.write('''Usage: usrsvc [start/stop/restart/status] [program name]
  Performs the requested action on the given program name.
+ "all" can be used for start/stop/restart in place of "program name"
  
 usrsvc is tool for performing specific actions on services, usrsvcd is the related daemon for autorestart/monitoring, etc.
 
 
-"all" can be used for start/stop/restart in place of "program name"
-
 When doing start/stop/restart all, you may add "--parallel" to perform the action on all items in parallel.
-
  Return code when using "all" is 0 when all success, or 1 for any failure, and the failure codes will be printed to stderr.
 
-See https://github.com/kata198/usrsvc/README.md for more documentation
+See https://github.com/kata198/usrsvc/blob/master/README.md for more documentation
 
 Uses the config file found at $HOME/usrsvc.cfg (%s)
 ''' %(os.environ['HOME'] + '/usrsvc.cfg', ) )

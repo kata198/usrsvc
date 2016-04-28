@@ -156,7 +156,7 @@ class ProgramConfig(object):
             self.stderr = stderr
 
         if kwargs:
-            raise ValueError('Unknown config options: %s' %(str(kwargs.keys()), ))
+            raise ValueError('Unknown config options: %s' %(str(list(kwargs.keys())), ))
 
     def __str__(self):
         return str(self.__dict__)
