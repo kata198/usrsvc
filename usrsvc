@@ -153,25 +153,42 @@ def doActionAndExit(args):
 
 
 def printUsage():
-    sys.stderr.write('''Usage: usrsvc [start/stop/restart/status] [program name]
+    sys.stderr.write('''Usage: usrsvc (Options) [start/stop/restart/status] [program name]
  Performs the requested action on the given program name.
  "all" can be used for start/stop/restart in place of "program name"
  
 usrsvc is tool for performing specific actions on services, usrsvcd is the related daemon for autorestart/monitoring, etc.
 
+  Options:
+  --------
 
-When doing start/stop/restart all, you may add "--parallel" to perform the action on all items in parallel.
- Return code when using "all" is 0 when all success, or 1 for any failure, and the failure codes will be printed to stderr.
+    Parallel:
+        When doing start/stop/restart all, you may add "--parallel" to perform 
+        the action on all items in parallel.
+          
 
-See https://github.com/kata198/usrsvc/blob/master/README.md for more documentation
+  Config:
+  -------
 
-Uses the config file found at $HOME/usrsvc.cfg (%s)
+    Usrsvc uses the config file found at $HOME/usrsvc.cfg (%s).
+
+  Documentation
+  -------------
+
+    Run "usrsvc --readme" or see https://github.com/kata198/usrsvc/blob/master/README.md 
+      for more documentation.
+
 ''' %(os.environ['HOME'] + '/usrsvc.cfg', ) )
 
 global config
 
 if __name__ == '__main__':
     parallelAll = False
+
+    if '--readme' in sys.argv:
+        from usrsvcmod.client.readme import printReadme
+        printReadme(sys.stdout)
+        sys.exit(ReturnCodes.HELP_MESSAGE)
 
     if '--help' in sys.argv:
         printUsage()
@@ -189,29 +206,6 @@ if __name__ == '__main__':
     # Prevent signals from interrupting us
     signal.signal(signal.SIGTERM, signal.SIG_IGN)
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-
-    '''    if parallelAll is True:
-        allProgramNames = config.getProgramConfigs().keys()
-        processes = {}
-        for programName in allProgramNames:
-            process = multiprocessing.Process(target=doActionAndExit, args=([sys.argv[1], programName], ))
-            process.start()
-            processes[programName] = process
-
-        ret = ReturnCodes.SUCCESS
-        exitCodes = {}
-        for processName, process in processes.items():
-            process.join()
-            exitCodes[processName] = process.exitcode
-
-        for programName, exitCode in exitCodes.items():
-            if exitCode != ReturnCodes.SUCCESS:
-                ret = ReturnCodes.GENERAL_FAILURE
-                logErr('%s exited with non-zero return code: %d (%s)\n' %(programName, exitCode, ReturnCodes.returnCodeToString(exitCode)) )
-
-        sys.exit(ret)
-    '''            
 
     if parallelAll is True:
         sys.exit(doActionParallel(sys.argv[1]))

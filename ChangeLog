@@ -1,3 +1,7 @@
+* 1.2.2 - May 11 2016
+- Wait longer before sending kill -9 for "usrsvcd stop"
+- Add "usrsvcd start" which is same as just "usrsvcd" but intuitive.
+
 * 1.2.1 - Apr 28 2016
 - Fix README path
 - Ensure dict keys when printed in error messages are str(list) instead of just str() because python3 otherwise adds "dict_keys(['blah'])" to the str.
