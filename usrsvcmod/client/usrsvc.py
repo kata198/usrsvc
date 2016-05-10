@@ -17,6 +17,7 @@
 
 
 import os
+import copy
 import signal
 import multiprocessing
 import sys
@@ -30,16 +31,32 @@ from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.logging import logMsg, logErr
 from usrsvcmod.constants import ReturnCodes
 
-
 class Usrsvc(object):
 
     def __init__(self, config=None):
         if not config:
             config = UsrsvcConfig(os.environ['HOME'] + '/usrsvc.cfg')
-            config.parse()
+            try:
+                config.parse()
+            except ValueError as e:
+                sys.stderr.write('ERROR in config: %s\n'  %(str(e),))
+                raise e
 
         self.config = config
 
+    def call(self, args):
+        argv = args[:]
+        if argv[0] != 'usrsvc':
+            argv = ['usrsvc'] + args
+
+        process = multiprocessing.Process(target=self._call_main, args=(argv,))
+        process.start()
+        process.join()
+
+        return process
+
+    def _call_main(self, argv):
+        sys.exit(self.main(argv))
 
     def doActionParallel(self, action):
         config = self.config
@@ -192,23 +209,29 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
     
     def main(self, argv):
         parallelAll = False
+        try:
 
-        if '--help' in argv:
-            self.printUsage()
-            return ReturnCodes.GENERAL_FAILURE
-        elif len(argv) == 4 and argv[1] in ('start', 'stop', 'restart') and argv[2] == 'all' and argv[3] == '--parallel':
-            parallelAll = True
-        elif len(argv) != 3:
-            logErr('Invalid number of arguments.\n')
-            self.printUsage()
-            return ReturnCodes.GENERAL_FAILURE
+            if '--help' in argv:
+                self.printUsage()
+                return ReturnCodes.GENERAL_FAILURE
+            elif len(argv) == 4 and argv[1] in ('start', 'stop', 'restart') and argv[2] == 'all' and argv[3] == '--parallel':
+                parallelAll = True
+            elif len(argv) != 3:
+                logErr('Invalid number of arguments.\n')
+                self.printUsage()
+                return ReturnCodes.GENERAL_FAILURE
 
-        # Prevent signals from interrupting us
-        signal.signal(signal.SIGTERM, signal.SIG_IGN)
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
+            # Prevent signals from interrupting us
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-        if parallelAll is True:
-            return self.doActionParallel(argv[1])
-        else:
-            return self.doAction(argv[1:])
+            if parallelAll is True:
+                return self.doActionParallel(argv[1])
+            else:
+                return self.doAction(argv[1:])
+
+        except Exception  as  e:
+           logErr('Error  in main %s:  %s\n'  %(str(argv), str(e)))
+           return ReturnCodes.UNKNOWN_FAILURE
+
 

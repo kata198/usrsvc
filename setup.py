@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     setup(name='usrsvc',
             version='1.3.0',
-            packages=['usrsvcmod', 'usrsvcmod.Monitoring'],
+            packages=['usrsvcmod', 'usrsvcmod.Monitoring', 'usrsvcmod.client'],
             scripts=['usrsvc', 'usrsvcd'],
             author='Tim Savannah',
             author_email='kata198@gmail.com',

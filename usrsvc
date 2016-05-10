@@ -18,7 +18,12 @@
 
 import sys
 from usrsvcmod.client.usrsvc import Usrsvc
+from  usrsvcmod.constants import ReturnCodes
 
 if __name__ == '__main__':
-    client = Usrsvc()
+    try:
+        client = Usrsvc()
+    except ValueError:
+        sys.exit(ReturnCodes.INVALID_CONFIG)
+
     sys.exit(client.main(sys.argv))
