@@ -57,6 +57,9 @@ class ReturnCodes(IntEnum):
 
     # Called when an invalid command or if cannot execute given command
     PROGRAM_FAILED_TO_LAUNCH = 137
+
+    # Returned when a help option (like  --help or  --readme) is used
+    HELP_MESSAGE = 138
     
     # Unknown exception occured, state of program is unknown.
     UNKNOWN_FAILURE = 254

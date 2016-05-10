@@ -29,7 +29,19 @@ if __name__ == '__main__':
             long_description = f.read()
     except Exception as e:
         sys.stderr.write('Error reading from README.rst: %s\n' %(str(e),))
-        log_description = summary
+        long_description = summary
+
+    try:
+        with open('usrsvcmod/client/_readme_contents.py', 'wt') as f:
+            f.write('README_CONTENTS = """%s"""\n' %(long_description,)  )
+            f.flush()
+            try:
+                os.fsync(f)
+            except:
+                pass
+    except Exception as e:
+        sys.stderr.write('Warning, failed to update readme.py - extended help will not be available.\n')
+        sys.stderr.write(str(e)  +  '\n')
 
     setup(name='usrsvc',
             version='1.3.0',

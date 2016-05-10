@@ -377,7 +377,11 @@ def callUsrsvc(args, config):
 if __name__ == '__main__':
     if '--help' in sys.argv:
         printUsage()
-        sys.exit(ReturnCodes.GENERAL_FAILURE)
+        sys.exit(ReturnCodes.HELP_MESSAGE)
+    if '--readme' in sys.argv:
+        from usrsvcmod.client.readme import printReadme
+        printReadme(sys.stdout)
+        sys.exit(ReturnCodes.HELP_MESSAGE)
 
 
     args = sys.argv[1:]

@@ -202,7 +202,8 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
   Documentation
   -------------
 
-    See https://github.com/kata198/usrsvc/blob/master/README.md for more documentation
+    Run "usrsvc --readme" or see https://github.com/kata198/usrsvc/blob/master/README.md 
+      for more documentation.
 
 ''' %(os.environ['HOME'] + '/usrsvc.cfg', ) )
 
@@ -213,7 +214,11 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
 
             if '--help' in argv:
                 self.printUsage()
-                return ReturnCodes.GENERAL_FAILURE
+                return ReturnCodes.HELP_MESSAGE
+            elif '--readme' in argv:
+                from usrsvcmod.client.readme import printReadme
+                printReadme(sys.stdout)
+                return ReturnCodes.HELP_MESSAGE
             elif len(argv) == 4 and argv[1] in ('start', 'stop', 'restart') and argv[2] == 'all' and argv[3] == '--parallel':
                 parallelAll = True
             elif len(argv) != 3:
