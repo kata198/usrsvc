@@ -67,6 +67,31 @@ usrsvc (tool)
 
 The "usrsvc" tool handles the basic operations of starting/stopping/restarting/status of a service. You can use this with or without *usrsvcd* running to manage services.
 
+	Usage: usrsvc (Options) [start/stop/restart/status] [program name]
+		Performs the requested action on the given program name.
+		"all" can be used for start/stop/restart in place of "program name"
+	 
+	usrsvc is tool for performing specific actions on services, usrsvcd is the related daemon for autorestart/monitoring, etc.
+
+	Options:
+	--------
+
+		Parallel:
+			When doing start/stop/restart all, you may add "--parallel" to perform 
+			the action on all items in parallel.
+			  
+
+	Config:
+	-------
+
+		Usrsvc uses the config file found at $HOME/usrsvc.cfg (/home/media/usrsvc.cfg).
+
+	Documentation
+	-------------
+
+		Run "usrsvc --readme" or see https://github.com/kata198/usrsvc/blob/master/README.md 
+		  for more documentation.
+
 
 	Usage: usrsvc [start/stop/restart/status] [program name]
 	  Performs the requested action on the given program name.
@@ -303,3 +328,4 @@ Changes
 
 The Changelog can be found at: https://raw.githubusercontent.com/kata198/usrsvc/master/ChangeLog
 
+[Wed May 11 23:35:04 2016] - Invalid number of arguments.

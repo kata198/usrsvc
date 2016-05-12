@@ -68,19 +68,45 @@ usrsvc (tool)
 
 The "usrsvc" tool handles the basic operations of starting/stopping/restarting/status of a service. You can use this with or without *usrsvcd* running to manage services.
 
+	Usage: usrsvc (Options) [start/stop/restart/status] [program name]
 
-	Usage: usrsvc [start/stop/restart/status] [program name]
+		Performs the requested action on the given program name.
 
-	  Performs the requested action on the given program name.
+		"all" can be used for start/stop/restart in place of "program name"
 
-	 "all" can be used for start/stop/restart.
-
-	When doing start/stop/restart all, you may add "--parallel" to perform the action on all items in parallel.
-
-	Return code when using "all" is 0 when all success, or 1 for any failure, and the failure codes will be printed to stderr.
+	 
+	usrsvc is tool for performing specific actions on services, usrsvcd is the related daemon for autorestart/monitoring, etc.
 
 
-	Uses the config file found at $HOME/usrsvc.cfg
+	Options:
+
+	--------
+
+
+		Parallel:
+
+			When doing start/stop/restart all, you may add "--parallel" to perform 
+
+			the action on all items in parallel.
+
+			  
+
+	Config:
+
+	-------
+
+
+		Usrsvc uses the config file found at $HOME/usrsvc.cfg (/home/media/usrsvc.cfg).
+
+
+	Documentation
+
+	-------------
+
+
+		Run "usrsvc --readme" or see https://github.com/kata198/usrsvc/blob/master/README.md 
+
+		  for more documentation.
 
 
 The tool will output some basic information about what happened, and give a meaningful return code (0 = success, otherwise see https://raw.githubusercontent.com/kata198/usrsvc/master/usrsvcmod/constants.py "ReturnCodes" object for the list of return codes used and descriptions).
