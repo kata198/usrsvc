@@ -1,6 +1,8 @@
 * 1.2.2 - May 11 2016
 - Wait longer before sending kill -9 for "usrsvcd stop"
 - Add "usrsvcd start" which is same as just "usrsvcd" but intuitive.
+- Add a --readme  option which will print the README
+- Cleanup the usage for usrsvc
 
 * 1.2.1 - Apr 28 2016
 - Fix README path
