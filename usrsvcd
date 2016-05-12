@@ -43,6 +43,7 @@ from usrsvcmod.UsrsvcConfig import UsrsvcConfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.Monitoring.Factory import MonitoringFactory
+from usrsvcmod.util import waitUpTo
 
 from func_timeout import func_timeout, FunctionTimedOut
 
@@ -240,17 +241,14 @@ def handleArg(arg):
 
             # Wait for process to die cleanly.
             time.sleep(.1)
-            now = time.time()
-            maxWait = now + 5.0
-            while os.path.exists('/proc/%d' %(usrsvcdProg.pid,)):
-                time.sleep(.1)
-                if time.time() > maxWait:
-                    # Took too long, send it sig kill.
-                    try:
-                        os.kill(usrsvcdProg.pid, signal.SIGKILL)
-                    except:
-                        pass
-                    break
+            pidDir = '/proc/%d' %(usrsvcdProg.pid, )
+            if not waitUpTo(os.path.exists, ('/proc/%d' %(usrsvcdProg.pid, ), ), timeout=5.0, interval=.1):
+                # Took too long, send it sig kill.
+                try:
+                    os.kill(usrsvcdProg.pid, signal.SIGKILL)
+                except:
+                    pass
+
         if arg == 'restart':
             cmd = ['usrsvcd']
             if isDebugEnabled():
@@ -376,7 +374,10 @@ if __name__ == '__main__':
         printUsage()
         sys.exit(ReturnCodes.GENERAL_FAILURE)
     
-    if args:
+    if args[0] == 'start':
+        args = []
+
+    elif args:
         # They provided an action. This function will return the exit code
         try:
             sys.exit(handleArg(args[0]))

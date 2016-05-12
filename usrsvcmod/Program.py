@@ -24,6 +24,7 @@ import time
 
 from .constants import ReturnCodes
 from .logging import logMsg, logErr
+from .util import  waitUpTo
 
 __all__ = ('Program',)
 
@@ -317,23 +318,14 @@ class Program(object):
                 result = 'terminated'
 
                 termToKillSeconds = programConfig.term_to_kill_seconds
-                now = time.time()
-                maxTimeBeforeKill = now + termToKillSeconds
 
-                pollTime = min(termToKillSeconds, .1)
-
-                while now < maxTimeBeforeKill:
-                    # If process has died, abort.
-                    if not os.path.exists('/proc/%d' %(self.pid,)):
-                        break
-                    # Otherwise, wait 100ms before checking again.
-                    time.sleep(pollTime)
-                    now = time.time()
-
-                # If program has not terminated given the threshold, send 'er the ol' boot.
-                if now >= maxTimeBeforeKill:
+                pollInterval = min(termToKillSeconds / 10.0, .1)
+                processDied = waitUpTo(os.path.exists, '/proc/%d' %(self.pid,), timeout=termToKillSeconds, interval=pollInterval)
+                if processDied is False:
+                    # If program has not terminated given the threshold, send 'er the ol' boot.
                     os.kill(self.pid, signal.SIGKILL)
                     result = 'killed'
+
             except:
                 pass
 
