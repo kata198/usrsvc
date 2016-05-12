@@ -378,10 +378,7 @@ if __name__ == '__main__':
         printUsage()
         sys.exit(ReturnCodes.GENERAL_FAILURE)
     
-    if args[0] == 'start':
-        args = []
-
-    elif args:
+    elif args and args[0] != 'start':
         # They provided an action. This function will return the exit code
         try:
             sys.exit(handleArg(args[0]))
