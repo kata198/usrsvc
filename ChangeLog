@@ -1,3 +1,6 @@
+* 1.2.4 - May 16 2016
+- Fix some typos found by Sergey Fukanchik. Thanks!
+
 * 1.2.3 - May 16 2016
 - Fix stupid RST MISformatting of README. Why can't it use markdown?
 
