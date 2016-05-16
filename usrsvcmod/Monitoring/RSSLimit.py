@@ -67,7 +67,7 @@ class RSSLimitMonitor(MonitoringBase):
                 logMsg('Restarting %s because RSS size %dkB exceeds limit of %dkB' %(self.programName, rssKB, rssLimit))
                 return True
         except FunctionTimedOut:
-            logErr('MONITOR: RSSLimit timed out on %s\n' %(programName,))
+            logErr('MONITOR: RSSLimit timed out on %s\n' %(self.programName,))
             raise
         except Exception as e:
             # If we got an exception, just log and try again next round.
