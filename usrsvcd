@@ -292,7 +292,7 @@ def doMonitoring():
                         # Try/except here, incase an OOM or otherwise breaks the poll, we hold on tight.
                         if restartProcesses[programName].poll() is None:
                             continue
-                    except:
+                    except Exception as e:
                         if isDebugEnabled():
                             logErr('DEBUG: Got exception in monitoring polling %s: %s\n' %(programName, str(e),))
                             traceback.print_exc()
