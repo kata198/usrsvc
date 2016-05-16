@@ -236,7 +236,7 @@ class Program(object):
             stdout = open(programConfig.stdout, 'at')
         except Exception as e:
             logErr('(%s) - Cannot open stdout %s for writing: %s\n' %(programConfig.name, programConfig.stdout, str(e)))
-            return ReturnCodes.INSUFFICENT_PERMISSIONS
+            return ReturnCodes.INSUFFICIENT_PERMISSIONS
 #            raise ValueError('Cannot open %s for writing.' %(programConfig.stdout,))
         if programConfig.stdout == programConfig.stderr:
             stderr = stdout
@@ -245,7 +245,7 @@ class Program(object):
                 stderr = open(programConfig.stderr, 'at')
             except Exception as e:
                 logErr('(%s) - Cannot open stderr %s for writing: %s\n' %(programConfig.name, programConfig.stderr, str(e)))
-                return ReturnCodes.INSUFFICENT_PERMISSIONS
+                return ReturnCodes.INSUFFICIENT_PERMISSIONS
 #                raise ValueError('Cannot open %s for writing.' %(programConfig.stderr,))
 
         if programConfig.inherit_env:
