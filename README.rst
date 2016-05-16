@@ -80,12 +80,12 @@ The "usrsvc" tool handles the basic operations of starting/stopping/restarting/s
 
 	Options:
 
-	--------
+	\-\-\-\-\-\-\-\-
 
 
 		Parallel:
 
-			When doing start/stop/restart all, you may add "--parallel" to perform 
+			When doing start/stop/restart all, you may add "\-\-parallel" to perform 
 
 			the action on all items in parallel.
 
@@ -93,7 +93,7 @@ The "usrsvc" tool handles the basic operations of starting/stopping/restarting/s
 
 	Config:
 
-	-------
+	\-\-\-\-\-\-\-
 
 
 		Usrsvc uses the config file found at $HOME/usrsvc.cfg (/home/media/usrsvc.cfg).
@@ -101,10 +101,10 @@ The "usrsvc" tool handles the basic operations of starting/stopping/restarting/s
 
 	Documentation
 
-	-------------
+	\-\-\-\-\-\-\-\-\-\-\-\-\-
 
 
-		Run "usrsvc --readme" or see https://github.com/kata198/usrsvc/blob/master/README.md 
+		Run "usrsvc \-\-readme" or see https://github.com/kata198/usrsvc/blob/master/README.md 
 
 		  for more documentation.
 

@@ -1,3 +1,6 @@
+* 1.2.3 - May 16 2016
+- Fix stupid RST MISformatting of README. Why can't it use markdown?
+
 * 1.2.2 - May 11 2016
 - Wait longer before sending kill -9 for "usrsvcd stop"
 - Add "usrsvcd start" which is same as just "usrsvcd" but intuitive.
