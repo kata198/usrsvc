@@ -320,7 +320,7 @@ class Program(object):
                 termToKillSeconds = programConfig.term_to_kill_seconds
 
                 pollInterval = min(termToKillSeconds / 10.0, .1)
-                processDied = waitUpTo(os.path.exists, '/proc/%d' %(self.pid,), timeout=termToKillSeconds, interval=pollInterval)
+                processDied = waitUpTo(os.path.exists, ('/proc/%d' %(self.pid,) , ), timeout=termToKillSeconds, interval=pollInterval)
                 if processDied is False:
                     # If program has not terminated given the threshold, send 'er the ol' boot.
                     os.kill(self.pid, signal.SIGKILL)
