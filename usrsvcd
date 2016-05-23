@@ -253,7 +253,9 @@ def handleArg(arg):
             cmd = ['usrsvcd']
             if isDebugEnabled():
                 cmd.append('--debug')
-            subprocess.Popen(cmd, shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
+            subprocess.Popen(cmd, shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr, env=os.environ)
+            # Wait for subprocess to be spawned before we exit or it may never spawn
+            time.sleep(1)
         return ReturnCodes.SUCCESS
     else:
         logErr('Unknown action: %s\n' %(arg,))
