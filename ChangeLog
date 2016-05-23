@@ -1,3 +1,6 @@
+* 1.3.3 - May 23 2016
+- When useshell=True, give up to success_seconds for the subprocess of the shell to start. This covers if some pre-tasks take a few seconds to perform before the final app is started.
+
 * 1.3.2 - May 23 2016
 - Fix issue when proctitle_re is provided. 
 - Better handle automatic proctitle_re when '&&' is used in a command. 
