@@ -1,3 +1,9 @@
+* 1.3.2 - May 23 2016
+- Fix issue when proctitle_re is provided. 
+- Better handle automatic proctitle_re when '&&' is used in a command. 
+- Make useshell default to False. 
+- When useshell is True, ensure we dont match the wrapping shell process but the final process itself.
+
 * 1.3.1 - May 23 2016
 - Instead of calling "usrsvc" as a subprocess from "usrsvcd", move the usrsvc client into a module and have usrsvcd fork and execute it. This allows usrsvcd to continue to manage processes after a bad configuration, by having usrsvc inherit the previous configuration as stored in usrsvcd.
 - If "usrsvcd restart" was called with an absolute path to usrsvcd, use that same path (incase usrsvcd is not on PATH).
