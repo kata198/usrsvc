@@ -239,7 +239,7 @@ The "Program" section has the following properties:
 
 * command - REQUIRED - Full command and arguments to execute. If #useshell# is True, this can contain shell-isms
 
-* useshell - If True, will invoke your application through a shell. You can use shell expressions in this mode. Use "False" if you don't need this.
+* useshell - Boolean, default False. If True, will invoke your application through a shell. You can use shell expressions in this mode. Use "False" if you don't need this.
 
 * pidfile - REQUIRED - Path to a pidfile. If #autopid# is False, your app must write its pid to this file. Otherwise, usrsvcd will mangage it, even with #scan_for_process# or other methods.
 

@@ -157,6 +157,10 @@ class Program(object):
             try:
                 # Do in a loop incase processes are created/destroyed between getting the list and checking it
                 procCmdline = cls._getProcCmdline(pid)
+
+                # Make sure we match actual process and not the wrapping shell.
+                if programConfig.useshell is True and procCmdline['cmdline'].startswith('/bin/sh -c'):
+                    continue
                 if bool(proctitleRE.search(procCmdline['cmdline'])):
                     prog = cls(programConfig.pidfile, pid, running=True, **procCmdline)
                     return prog
@@ -285,7 +289,18 @@ class Program(object):
             return ReturnCodes.PROGRAM_EXITED_UNEXPECTEDLY
 
         # Started successfully, update our dict.
-        self.pid = int(pipe.pid)
+        if useShell is False:
+            self.pid = int(pipe.pid)
+        else:
+            # If they are using shell, we don't want to match the shell subprocess. So try to find a match by title.
+            matchedProgram = Program.createFromRunningProcesses(programConfig)
+            if matchedProgram is None:
+                logErr('(%s) - Failed to find program matching proctitle_re. Shell pid is: %d\n' %(programConfig.name, pipe.pid))
+                return ReturnCodes.PROGRAM_FAILED_TO_LAUNCH
+
+            self.pid = matchedProgram.pid
+            
+
         try:
             self.setCmdlineFromProc()
         except:

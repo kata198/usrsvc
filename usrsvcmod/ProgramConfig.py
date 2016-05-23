@@ -33,7 +33,7 @@ class ProgramConfig(object):
     def __init__(self, name, 
             command=None, pidfile=None, autostart=True,
             autorestart=True, maxrestarts=0, restart_delay=0,
-            autopid=True, useshell=True, proctitle_re=None, 
+            autopid=True, useshell=False, proctitle_re=None, 
             success_seconds=2.0, term_to_kill_seconds=8.0, scan_for_process=True,
             stdout=None, stderr=None,
             enabled=True,
@@ -131,7 +131,16 @@ class ProgramConfig(object):
         # If proctitle_re is not defined, default to the provided command.
         #   Do not use start because given a shebang line, the executable may change.
         if not proctitle_re:
-            proctitle_re = re.compile('(%s)$' %(re.escape(' '.join(commandSplit)), ))
+            proctitleCommandSplit = commandSplit
+            # If this is a shell, and && is provided, skip past that.
+            if self.useshell and '&&' in command:
+                proctitleCommandSplit = shlex.split(command[command.rindex('&&')+2:])
+            proctitle_re = re.compile('(%s)$' %(re.escape(' '.join(proctitleCommandSplit)), ))
+        else:
+            try:
+                proctitle_re = re.compile(proctitle_re)
+            except Exception as e:
+                raise ValueError('Cannot parse proctitle_re: %s\nError: %s' %(proctitle_re, str(e)))
 
         self.proctitle_re = proctitle_re
             
