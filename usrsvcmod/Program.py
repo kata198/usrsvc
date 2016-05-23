@@ -270,6 +270,7 @@ class Program(object):
             logErr('(%s) - Failed to run command ( %s ): %s\n' %(programConfig.name, str(command), str(e)))
             return ReturnCodes.PROGRAM_FAILED_TO_LAUNCH
         
+        time.sleep(.1) # Give a chance to start program
         now = time.time()
         successAfter = now + programConfig.success_seconds
 
@@ -294,6 +295,10 @@ class Program(object):
         else:
             # If they are using shell, we don't want to match the shell subprocess. So try to find a match by title.
             matchedProgram = Program.createFromRunningProcesses(programConfig)
+            while matchedProgram is None and time.time() < successAfter:
+                time.sleep(.1)
+                matchedProgram = Program.createFromRunningProcesses(programConfig)
+
             if matchedProgram is None:
                 logErr('(%s) - Failed to find program matching proctitle_re. Shell pid is: %d\n' %(programConfig.name, pipe.pid))
                 return ReturnCodes.PROGRAM_FAILED_TO_LAUNCH
