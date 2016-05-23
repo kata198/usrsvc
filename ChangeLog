@@ -1,3 +1,7 @@
+* 1.2.6 - May 23 2016
+- Wait 1 second after spawning subprocess during "usrsvcd restart", or we may exit before child process is created.
+- Inherit env during "usrsvcd restart" to inherit any PATH
+
 * 1.2.5 - May 17 2016
 - Fix program stop not working after refactoring
 
