@@ -292,9 +292,14 @@ def doMonitoring():
                 if programName in restartProcesses:
                     try:
                         # Try/except here, incase an OOM or otherwise breaks the poll, we hold on tight.
-                        if restartProcesses[programName].poll() is None:
+                        if restartProcesses[programName].is_alive() is True:
                             continue
-                    except Exception as e:
+                        restartProcesses[programName].join()
+                        restartProcessesResult = restartProcesses[programName].exitcode
+
+                        if restartProcessesResult != 0:
+                            logErr('WARNING: Got non-zero result [%s] on restarting %s \n'  %(str(restartProcessesResult), programName))
+                    except Exception as  e:
                         if isDebugEnabled():
                             logErr('DEBUG: Got exception in monitoring polling %s: %s\n' %(programName, str(e),))
                             traceback.print_exc()
@@ -338,7 +343,8 @@ def doMonitoring():
                 if monitorResults['doRestart'] is True:
                     logErr('MONITOR: Restarting %s.\n\n%s\n' %(programName, str(monitorResults)))
                     restarting.add(programName)
-                    restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
+#                    restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
+                    restartProcesses[programName] = callUsrsvc(['restart', programName], config)
         except Exception as e:
             # If we get an exception, don't fail. Just try, try again.
             if isDebugEnabled():
@@ -358,6 +364,14 @@ def doMonitoring():
     return
 
 
+def callUsrsvc(args, config):
+    from usrsvcmod.client.usrsvc import Usrsvc
+
+    usrsvc = Usrsvc(config)
+    process = usrsvc.call(args)
+
+    return process
+    
 
 
 if __name__ == '__main__':
@@ -428,7 +442,7 @@ if __name__ == '__main__':
 
 
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+#    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
     signal.signal(signal.SIGUSR1, rereadConfig)
     signal.signal(signal.SIGTERM, handle_sigterm)
 #    config = UsrsvcConfig(os.environ['HOME'] + '/usrsvc.cfg')
@@ -458,13 +472,14 @@ if __name__ == '__main__':
                 if programName in startProcesses:
                     # We ensure that we don't tag the program running when it is still starting by waiting for the pipe to finish.
                     #  usrsvc waits "success_seconds" before determining success.
-                    pollResult = startProcesses[programName].poll()
-                    if pollResult is None:
+                    if startProcesses[programName].is_alive() is True:
                         continue
+                    startProcesses[programName].join()
+                    startProcessResult = startProcesses[programName].exitcode
                     del startProcesses[programName]
 
-                    if pollResult != 0:
-                        logErr( 'WARNING: The command "usrsvc start %s" returned non-zero: %d (%s)\n' %(programName, pollResult, ReturnCodes.returnCodeToString(pollResult)) )
+                    if startProcessResult != 0:
+                        logErr( 'WARNING: The command "usrsvc start %s" returned non-zero: %d (%s)\n' %(programName, startProcessResult, ReturnCodes.returnCodeToString(startProcessResult)) )
 
                 # This goes after the thread check, incase they reload config and change autostart we don't leave a subprocess
                 if programConfig.enabled is False or programConfig.autostart is False and programConfig.autorestart is False:
@@ -523,7 +538,8 @@ if __name__ == '__main__':
                         # We should always do this, whether or not restart_delay is set now, for config-reload reasons.
                         programLastRestartAttemptAt[programName] = time.time()
 
-                    startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
+#                    startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
+                    startProcesses[programName] = callUsrsvc(['start', programName], config)
             except Exception as e:
                 # If we got a non-specific exception, assume something happened like something restarted the process outside of this loop, and ignore it.
                 if isDebugEnabled():
