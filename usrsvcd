@@ -250,7 +250,10 @@ def handleArg(arg):
                     pass
 
         if arg == 'restart':
-            cmd = ['usrsvcd']
+            if sys.argv[0].startswith('/'):
+                cmd = [sys.argv[0]]
+            else:
+                cmd = ['usrsvcd']
             if isDebugEnabled():
                 cmd.append('--debug')
             subprocess.Popen(cmd, shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr, env=os.environ)
