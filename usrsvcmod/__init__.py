@@ -16,5 +16,5 @@
     usrsvc is a user process manager
 '''
 
-__version__ = '1.3.3'
-__version_tuple__ = (1, 3, 3)
+__version__ = '1.3.4'
+__version_tuple__ = (1, 3, 4)

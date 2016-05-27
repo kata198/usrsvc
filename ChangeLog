@@ -1,3 +1,7 @@
+* 1.3.4 - May 27 2016
+- Remove unintentional change that caused restarts/startups happen async. They should
+have always been parallel
+
 * 1.3.3 - May 23 2016
 - When useshell=True, give up to success_seconds for the subprocess of the shell to start. This covers if some pre-tasks take a few seconds to perform before the final app is started.
 
