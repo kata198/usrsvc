@@ -168,7 +168,6 @@ class ProgramConfig(object):
 
             self.stderr = stderr
 
-        print ( "Setting %s to %s\n" %(name, email_alerts))
         self.email_alerts = email_alerts
 
         if kwargs:
