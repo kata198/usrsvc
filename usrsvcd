@@ -49,6 +49,8 @@ from usrsvcmod.util import waitUpTo, getUsername, getHostname
 
 from func_timeout import func_timeout, FunctionTimedOut
 
+from NamedAtomicLock import NamedAtomicLock
+
 def printUsage():
     sys.stderr.write('''Usage: usrsvcd (Optional: [action])
 Optional daemon portion of usrsvc which actively monitors processes and provides the autostart/autorestart, and other optional features.
@@ -557,6 +559,10 @@ if __name__ == '__main__':
                     # If they don't want this managed by usrsvcd, continue to next program
                     continue
 
+                lock = NamedAtomicLock('.lock_usrsvc' + programName, maxLockAge=30)
+                # Someone is interacting via usrsvc
+                if lock.isHeld:
+                    continue
 
                 prog = None
                 try:
@@ -586,6 +592,9 @@ if __name__ == '__main__':
 
                 doStart = False
                 isRestart = False
+
+                if lock.isHeld:
+                    continue
 
                 if programConfig.autostart is True and programWasStarted[programName] is False:
                     # Process was not running when we started, and autostart is True, so start it.
