@@ -24,7 +24,7 @@
 '''
 
 
-
+import datetime
 import os
 import sys
 import signal
@@ -35,6 +35,8 @@ import traceback
 
 from collections import defaultdict
 
+import usrsvcmod.mail as mail
+
 from usrsvcmod.logging import logMsg, logErr
 from usrsvcmod.debug import isDebugEnabled, toggleDebug
 from usrsvcmod.constants import ReturnCodes
@@ -43,7 +45,7 @@ from usrsvcmod.UsrsvcConfig import UsrsvcConfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.Monitoring.Factory import MonitoringFactory
-from usrsvcmod.util import waitUpTo
+from usrsvcmod.util import waitUpTo, getUsername, getHostname
 
 from func_timeout import func_timeout, FunctionTimedOut
 
@@ -367,6 +369,66 @@ def doMonitoring():
     return
 
 
+global mailQueue
+mailQueue = []
+
+def addMail(mailData):
+    global mailQueue
+    global config
+
+    sendmailPath = config.mainConfig.sendmail_path
+    if not sendmailPath:
+        logErr('Would have sent email, but sendmail_path is not configured!\n%s\n' %(str({'to':to, 'subject':subject, 'body':body}),))
+        return False
+
+    mailData['sendmailPath'] = sendmailPath
+    mailQueue.append(mailData)
+    return True
+
+
+def sendEmail(mailData):
+    try:
+        mail.sendmail(**mailData)
+    except mail.SendmailFailedException as e:
+        logErr('Failed to send mail: %s\nMail was: %s\n' %(str(e), str(mailData)) )
+        return False
+    except Exception as e:
+        logErr('Exception when sending mail: %s\nMail was: %s\n' %(str(e), str(mailData)) )
+        return False
+
+    return True
+    
+
+def doMail():
+    global config
+    global keepGoing
+    global mailQueue
+
+    mailThreads = []
+    while keepGoing:
+        for mailThread in mailThreads[:]:
+            try:
+                if mailThread.is_alive() is True:
+                    continue
+
+                mailThread.join()
+            except Exception as e:
+                logErr('Error in mail thread: %s. Removing.\n' %(str(mailThread),))
+            mailThreads.remove(mailThread)
+        for item in mailQueue[:]:
+            thread = threading.Thread(target=sendEmail, args = (item,))
+            thread.daemon = True
+            thread.start()
+
+            mailThreads.append(thread)
+            mailQueue.remove(item)
+
+        time.sleep(2)
+
+    
+
+
+
 def callUsrsvc(args, config):
     from usrsvcmod.client.usrsvc import Usrsvc
 
@@ -456,6 +518,9 @@ if __name__ == '__main__':
     programWasSeenRunning = set()
     programLastRestartAttemptAt = {}
 
+    myUsername = getUsername()
+    myHostname = getHostname()
+
     # Number of start attempts per app. Resets to 0 after a successful start.
     numStartAttempts = defaultdict(int)
 
@@ -463,6 +528,9 @@ if __name__ == '__main__':
 
     monitoringThread = threading.Thread(target=doMonitoring)
     monitoringThread.start()
+
+    mailThread = threading.Thread(target=doMail)
+    mailThread.start()
 
     ### START MAIN LOOP  ###
     while keepGoing is True:
@@ -543,6 +611,16 @@ if __name__ == '__main__':
 
 #                    startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
                     startProcesses[programName] = callUsrsvc(['start', programName], config)
+                    if programConfig.email_alerts:
+                        if isRestart is True:
+                            subject = "%s - %s restarting" %(myUsername, programName, )
+                            bodyPart = "was restarted"
+                        else:
+                            subject = "%s - %s starting" %(myUsername, programName, )
+                            bodyPart = "was started"
+                        body = 'At %s %s on %s %s.\nCheck usrsvcd logs for more information.\n\nYours,\nusrsvcd (%s)\n' %(datetime.datetime.now().ctime(), programName, myHostname, bodyPart, myUsername)
+                        mailData = {'to' : programConfig.email_alerts, 'subject' : subject, 'body' : body}
+                        addMail(mailData)
             except Exception as e:
                 # If we got a non-specific exception, assume something happened like something restarted the process outside of this loop, and ignore it.
                 if isDebugEnabled():
@@ -551,9 +629,10 @@ if __name__ == '__main__':
                 pass
 
 
-        time.sleep(2) 
+        time.sleep(2)
 
     ### END MAIN LOOP  ###
  
     # Join any threads, which should all be exiting when "keepGoing" switches to False.   
     monitoringThread.join()
+    mailThread.join()

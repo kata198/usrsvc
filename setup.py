@@ -53,7 +53,7 @@ if __name__ == '__main__':
             url='https://github.com/kata198/usrsvc',
             maintainer_email='kata198@gmail.com',
             requires=['configobj', 'NamedAtomicLock', 'func_timeout'],
-            install_requires=['configobj', 'NamedAtomicLock', 'func_timeout'],
+            install_requires=['configobj', 'NamedAtomicLock', 'func_timeout', 'python-subprocess2'],
             description=summary,
             long_description=long_description,
             license='GPLv2',

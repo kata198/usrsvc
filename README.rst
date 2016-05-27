@@ -228,6 +228,8 @@ The [Main] section must be found in $HOME/usrsvc.cfg, and can contain any of the
 
 * usrsvcd_stderr - If defined, usrsvcd will log stderr to this file instead of the default stderr (likely a terminal). Use the value "stdout" to log stderr to the same location as stdout, otherwise must be an absolute path.
 
+* sendmail_path - If defined and not "auto", this should be the path to the "sendmail" application. This is used as the sender program when "email_alerts" is set on a Program. If not defined or auto, /usr/sbin/sendmail, /usr/bin/sendmail, and every element in PATH will be checked.
+
 
 **[Program:myprogram]**
 
@@ -277,6 +279,7 @@ NOTE: The following stdout/stderr are opened in "append" mode always.
 
 * inherit_env - Boolean, default True. If True, will inherit the env from "usrsvc" or "usrsvcd". Otherwise, will only use the Env as defined in the Env subsection.
 
+* mail_alerts - String, if set, when usrsvcd starts/restarts a process, an email alert will go to this address.
 
 
 "Program" Supports the following subsections:

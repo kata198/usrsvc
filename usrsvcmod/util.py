@@ -16,9 +16,12 @@
     usrsvc is a user process manager
 '''
 
+import os
+import socket
+import pwd
 import time
 
-__all__ =  ('waitUpTo', )
+__all__ =  ('waitUpTo', 'getUsername', 'getHostname' )
 
 
 def waitUpTo(testFunc, funcArgs, timeout, interval=0.1):
@@ -47,3 +50,20 @@ def waitUpTo(testFunc, funcArgs, timeout, interval=0.1):
 
     return not funcResult
 
+def getUsername():
+    try:
+        return pwd.getpwuid(os.getuid()).pw_nam
+    except:
+        try:
+            return os.environ['USER']
+        except:
+            pass
+
+    return 'unknown'
+
+def getHostname():
+    # Try fqdn first, if localhost, get short name.
+    hostname = socket.getfqdn()
+    if 'localhost' in hostname:
+        hostname = socket.gethostname()
+    return hostname

@@ -207,6 +207,8 @@ The [Main] section must be found in $HOME/usrsvc.cfg, and can contain any of the
 
 * usrsvcd\_stderr - If defined, usrsvcd will log stderr to this file instead of the default stderr (likely a terminal). Use the value "stdout" to log stderr to the same location as stdout, otherwise must be an absolute path.
 
+* sendmail\_path - If defined and not "auto", this should be the path to the "sendmail" application. This is used as the sender program when "email_alerts" is set on a Program. If not defined or auto, /usr/sbin/sendmail, /usr/bin/sendmail, and every element in PATH will be checked.
+
 
 **[Program:myprogram]**
 
@@ -243,6 +245,8 @@ The "Program" section has the following properties:
 * success\_seconds - Default 2, Float on the number of seconds the application must be running for "usrsvc" to consider it successfully started.
 
 * term\_to\_kill\_seconds : Default 8, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
+
+* mail\_alerts - String, if set, when usrsvcd starts/restarts a process, an email alert will go to this address.
 
 
 

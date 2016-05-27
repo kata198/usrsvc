@@ -28,7 +28,7 @@ class MainConfig(object):
         The main op iterations should fetch the relevant sections, and on next loop fetch from new.
     '''
 
-    def __init__(self, config_dir=None, pidfile=None, usrsvcd_stdout=None, usrsvcd_stderr=None, **kwargs):
+    def __init__(self, config_dir=None, pidfile=None, usrsvcd_stdout=None, usrsvcd_stderr=None, sendmail_path='auto', **kwargs):
         if kwargs:
             raise ValueError('Unknown config options in Main section: %s\n' %(str(list(kwargs.keys())),))
 
@@ -52,6 +52,31 @@ class MainConfig(object):
                     raise ValueError('usrsvcd_stderr in [Main], if defined, must be "stdout" or an absolute path.')
 
         self.usrsvcd_stderr = usrsvcd_stderr
+
+        if not sendmail_path or sendmail_path == 'auto':
+            sendmail_path = None
+            if os.path.exists('/usr/sbin/sendmail'):
+                sendmail_path = '/usr/sbin/sendmail'
+            elif os.path.exists('/usr/bin/sendmail'):
+                sendmail_path = '/usr/bin/sendmail'
+            else:
+                environPath = os.environ['PATH']
+                for path in environPath.split(':'):
+                    if not path:
+                        continue
+                    if path.endswith('/') and len(path) > 1:
+                        path = path[:-1]
+                    tryPath = path + '/sendmail'
+                    if os.path.exists(tryPath):
+                        sendmail_path = tryPath
+                        break
+        else:
+            if not os.path.exists(sendmail_path):
+                raise ValueError('sendmail_path "%s" does not exist.' %(sendmail_path,))
+
+        self.sendmail_path = sendmail_path
+
+
 
     def getProgramConfigDir(self):
         return self.config_dir

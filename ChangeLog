@@ -1,3 +1,10 @@
+* 1.4.0 - ??? ?? ????
+- Add alert mail functionality - When a program is started/restarted and
+"email_alerts" is set on a program config, an email will be sent to that
+address. Also adds "sendmail_path" on MainConfig, which defines an explicit
+location of the "sendmail" program. Default is to try to find it on PATH and
+in common places.
+
 * 1.3.3 - May 23 2016
 - When useshell=True, give up to success_seconds for the subprocess of the shell to start. This covers if some pre-tasks take a few seconds to perform before the final app is started.
 
