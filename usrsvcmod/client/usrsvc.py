@@ -51,7 +51,6 @@ class Usrsvc(object):
 
         process = multiprocessing.Process(target=self._call_main, args=(argv,))
         process.start()
-        process.join()
 
         return process
 
