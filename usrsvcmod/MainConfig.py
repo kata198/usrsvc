@@ -18,6 +18,8 @@
 
 import os
 
+from .util import findProgramPath
+
 __all__ = ('MainConfig', )
 
 class MainConfig(object):
@@ -60,16 +62,7 @@ class MainConfig(object):
             elif os.path.exists('/usr/bin/sendmail'):
                 sendmail_path = '/usr/bin/sendmail'
             else:
-                environPath = os.environ['PATH']
-                for path in environPath.split(':'):
-                    if not path:
-                        continue
-                    if path.endswith('/') and len(path) > 1:
-                        path = path[:-1]
-                    tryPath = path + '/sendmail'
-                    if os.path.exists(tryPath):
-                        sendmail_path = tryPath
-                        break
+                sendmail_path = findProgramPath('sendmail')
         else:
             if not os.path.exists(sendmail_path):
                 raise ValueError('sendmail_path "%s" does not exist.' %(sendmail_path,))

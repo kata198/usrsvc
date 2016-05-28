@@ -21,7 +21,7 @@ import socket
 import pwd
 import time
 
-__all__ =  ('waitUpTo', 'getUsername', 'getHostname' )
+__all__ =  ('waitUpTo', 'getUsername', 'getHostname', 'findProgramPath' )
 
 
 def waitUpTo(testFunc, funcArgs, timeout, interval=0.1):
@@ -67,3 +67,26 @@ def getHostname():
     if 'localhost' in hostname:
         hostname = socket.gethostname()
     return hostname
+
+def findProgramPath(programName, environPath=None):
+    '''
+        findProgramPath - Find the path to an excutable.
+
+        @param programName - Name to searh
+        @param env - PATH to search, or None to use os.environ['PATH']
+
+        @return - Path to program if found, otherwise None
+    '''
+    if environPath is None:
+        environPath = os.environ['PATH']
+
+    for path in environPath.split(':'):
+        if not path:
+            continue
+        if path.endswith('/') and len(path) > 1:
+            path = path[:-1]
+        tryPath = path + '/' + programName
+        if os.access(tryPath, os.X_OK):
+            return tryPath
+
+    return None

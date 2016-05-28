@@ -9,6 +9,10 @@ and before restarting. This fixes the condition where issuing a "usrsvc
 restart" while usrsvcd is running will force usrsvcd to note the program
 stopped and issue a double-start. Only one instance will be started, but it's
 excess work and logging.
+- Add util function to search PATH for an executable. If not given absolute
+path when calling usrsvcd, search PATH first, otherwise try to identify based
+on relative and cwd. This adds the last option (like when calling with
+relative path into a virtualenv), since the second was implicit prior.
 
 * 1.3.3 - May 23 2016
 - When useshell=True, give up to success_seconds for the subprocess of the shell to start. This covers if some pre-tasks take a few seconds to perform before the final app is started.

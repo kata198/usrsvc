@@ -45,7 +45,7 @@ from usrsvcmod.UsrsvcConfig import UsrsvcConfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.Monitoring.Factory import MonitoringFactory
-from usrsvcmod.util import waitUpTo, getUsername, getHostname
+from usrsvcmod.util import waitUpTo, getUsername, getHostname, findProgramPath
 
 from func_timeout import func_timeout, FunctionTimedOut
 
@@ -112,6 +112,7 @@ def rereadConfig(*args, **kwargs):
 
     config = config2
     configureStdoutStderr(config.mainConfig)
+    logMsg('Successfully loaded new config.\n')
     
 
 def getConfig():
@@ -225,6 +226,7 @@ def handleArg(arg):
         if not usrsvcdProg:
             logErr('usrsvcd is not running.\n')
             return ReturnCodes.SUCCESS # Not an error condition, because the changes will be applied whenever usrsvcd is started.
+        logMsg('Config okay, triggering reload...\n')
         os.kill(usrsvcdProg.pid, signal.SIGUSR1)
         return ReturnCodes.SUCCESS
 
@@ -235,6 +237,7 @@ def handleArg(arg):
             return ReturnCodes.INVALID_CONFIG
         usrsvcdProg = getUsrsvcdProg()
         if usrsvcdProg:
+            logMsg('Sending SIGTERM to running usrsvcd pid=%d\n' %(usrsvcdProg.pid, ) )
             try:
                 os.kill(usrsvcdProg.pid, signal.SIGTERM)
             except Exception as e:
@@ -246,8 +249,9 @@ def handleArg(arg):
             # Wait for process to die cleanly.
             time.sleep(.1)
             pidDir = '/proc/%d' %(usrsvcdProg.pid, )
-            if not waitUpTo(os.path.exists, ('/proc/%d' %(usrsvcdProg.pid, ), ), timeout=5.0, interval=.1):
+            if not waitUpTo(os.path.exists, ('/proc/%d' %(usrsvcdProg.pid, ), ), timeout=7.0, interval=.1):
                 # Took too long, send it sig kill.
+                logErr('usrsvcd did not die within 7 seconds, sending SIGKILL\n')
                 try:
                     os.kill(usrsvcdProg.pid, signal.SIGKILL)
                 except:
@@ -257,7 +261,18 @@ def handleArg(arg):
             if sys.argv[0].startswith('/'):
                 cmd = [sys.argv[0]]
             else:
-                cmd = ['usrsvcd']
+                usrsvcdPath = findProgramPath('usrsvcd')
+                if usrsvcdPath is None:
+                    logErr('Unable to find usrsvcd on PATH.\n')
+                    # Try to find it via sys.argv[0]
+                    usrsvcdPath = os.getcwd() + '/' + sys.argv[0]
+                    if not os.access(usrsvcdPath, os.X_OK):
+                        logErr('Unable to find usrsvcd based on running executable.\n')
+                        return ReturnCodes.GENERAL_FAILURE
+                    else:
+                        logMsg('Found usrsvcd based on running executable: %s\n' %(usrsvcdPath,))
+
+                cmd = [usrsvcdPath]
             if isDebugEnabled():
                 cmd.append('--debug')
             subprocess.Popen(cmd, shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr, env=os.environ)
