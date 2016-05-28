@@ -4,10 +4,9 @@
 address. Also adds "sendmail_path" on MainConfig, which defines an explicit
 location of the "sendmail" program. Default is to try to find it on PATH and
 in common places.
-- Test if usrsvc is holding a lock on a program before testing if it's down
-and before restarting. This fixes the condition where issuing a "usrsvc
-restart" while usrsvcd is running will force usrsvcd to note the program
-stopped and issue a double-start. Only one instance will be started, but it's
+- Fix issue where usrsvcd would try to start a process after usrsvc stopped
+it, if "usrsvc restart" was issued. This tests if usrsvc is holding a lock on a program before testing if it's down
+and before restarting.  Only one instance would have been started, but it's
 excess work and logging.
 - Add util function to search PATH for an executable. If not given absolute
 path when calling usrsvcd, search PATH first, otherwise try to identify based
