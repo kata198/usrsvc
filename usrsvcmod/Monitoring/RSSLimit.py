@@ -16,6 +16,8 @@
     RSSLimitMonitor - Monitor maximum RSS (Resident Set Size)
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 from func_timeout import FunctionTimedOut
 
 from . import MonitoringBase
@@ -40,6 +42,8 @@ class RSSLimitMonitor(MonitoringBase):
             @param programName <str> - Name of program
             @param rssLimit <int> - kB maximum RSS size
         '''
+        MonitoringBase.__init__(self)
+
         self.programName = programName
         self.rssLimit = rssLimit
 
@@ -64,7 +68,7 @@ class RSSLimitMonitor(MonitoringBase):
             rssPages = int(fields[1])
             rssKB = int((rssPages * PAGE_SIZE) / 1024)
             if rssKB > self.rssLimit:
-                logMsg('Restarting %s because RSS size %dkB exceeds limit of %dkB' %(self.programName, rssKB, rssLimit))
+                self.setReason('Restarting %s because RSS size %dkB exceeds limit of %dkB' %(self.programName, rssKB, rssLimit))
                 return True
         except FunctionTimedOut:
             logErr('MONITOR: RSSLimit timed out on %s\n' %(self.programName,))
@@ -76,3 +80,5 @@ class RSSLimitMonitor(MonitoringBase):
         return False 
 
 
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

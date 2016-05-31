@@ -16,5 +16,9 @@
     usrsvc is a user process manager
 '''
 
-__version__ = '1.3.4'
-__version_tuple__ = (1, 3, 4)
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
+__version__ = '1.4.0'
+__version_tuple__ = (1, 4, 0)
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

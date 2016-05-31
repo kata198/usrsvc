@@ -44,7 +44,7 @@ if __name__ == '__main__':
         sys.stderr.write(str(e)  +  '\n')
 
     setup(name='usrsvc',
-            version='1.3.4',
+            version='1.4.0',
             packages=['usrsvcmod', 'usrsvcmod.Monitoring', 'usrsvcmod.client'],
             scripts=['usrsvc', 'usrsvcd'],
             author='Tim Savannah',
@@ -53,7 +53,7 @@ if __name__ == '__main__':
             url='https://github.com/kata198/usrsvc',
             maintainer_email='kata198@gmail.com',
             requires=['configobj', 'NamedAtomicLock', 'func_timeout'],
-            install_requires=['configobj', 'NamedAtomicLock', 'func_timeout'],
+            install_requires=['configobj', 'NamedAtomicLock>=1.1.0', 'func_timeout', 'python-subprocess2'],
             description=summary,
             long_description=long_description,
             license='GPLv2',

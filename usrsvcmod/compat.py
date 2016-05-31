@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 '''
     Copyright (c) 2016 Tim Savannah All Rights Reserved.
     This software is licensed under the terms of the GPLv3.
@@ -13,20 +12,33 @@
     you are may email Tim Savannah <kata198 at gmail dot com>, or find them on the
     current website intended for distribution of usrsvc.
 
-    usrsvc is the tool to start/stop/restart and get status on services. usrsvcd is the daemon for autostart, autorestart, monitoring, etc.
+
+    compat stuff. import * to get everything.
 '''
+
 # vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
 
-import sys
-from usrsvcmod.client.usrsvc import Usrsvc
-from  usrsvcmod.constants import ReturnCodes
+allList = []
 
-if __name__ == '__main__':
-    try:
-        client = Usrsvc()
-    except ValueError:
-        sys.exit(ReturnCodes.INVALID_CONFIG)
+try:
+    classproperty
+except NameError:
+    class classproperty(object):
+        def __init__(self, getter):
+            self.getter = getter
+        def __get__(self, instance, owner):
+            return self.getter(owner)
 
-    sys.exit(client.main(sys.argv))
+        allList.append('classproperty')
+
+try:
+    unicode
+except NameError:
+    unicode = str
+
+    allList.append('unicode')
+
+
+__all__ = tuple(allList)
 
 # vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

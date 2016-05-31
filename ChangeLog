@@ -1,3 +1,20 @@
+
+* 1.4.0 - May 30 2016
+- Add alert mail functionality - When a program is started/restarted and
+"email_alerts" is set on a program config, an email will be sent to that
+address. Also adds "sendmail_path" on MainConfig, which defines an explicit
+location of the "sendmail" program. Default is to try to find it on PATH and
+in common places.
+- Fix issue where usrsvcd would try to start a process after usrsvc stopped
+it, if "usrsvc restart" was issued. This tests if usrsvc is holding a lock on a program before testing if it's down
+and before restarting.  Only one instance would have been started, but it's
+excess work and logging.
+- Add util function to search PATH for an executable. If not given absolute
+path when calling usrsvcd, search PATH first, otherwise try to identify based
+on relative and cwd. This adds the last option (like when calling with
+relative path into a virtualenv), since the second was implicit prior.
+- Some minor cleanups and tunings
+
 * 1.3.5 - ??? ?? ????
 - Update time reported in Activity File log. It was reporting the number of
 seconds past the threshold, but it makes more sense to report the total age.

@@ -16,7 +16,11 @@
     'MainConfig' is the main configuration file
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import os
+
+from .util import findProgramPath
 
 __all__ = ('MainConfig', )
 
@@ -28,7 +32,7 @@ class MainConfig(object):
         The main op iterations should fetch the relevant sections, and on next loop fetch from new.
     '''
 
-    def __init__(self, config_dir=None, pidfile=None, usrsvcd_stdout=None, usrsvcd_stderr=None, **kwargs):
+    def __init__(self, config_dir=None, pidfile=None, usrsvcd_stdout=None, usrsvcd_stderr=None, sendmail_path='auto', **kwargs):
         if kwargs:
             raise ValueError('Unknown config options in Main section: %s\n' %(str(list(kwargs.keys())),))
 
@@ -53,8 +57,27 @@ class MainConfig(object):
 
         self.usrsvcd_stderr = usrsvcd_stderr
 
+        if not sendmail_path or sendmail_path == 'auto':
+            sendmail_path = None
+            if os.path.exists('/usr/sbin/sendmail'):
+                sendmail_path = '/usr/sbin/sendmail'
+            elif os.path.exists('/usr/bin/sendmail'):
+                sendmail_path = '/usr/bin/sendmail'
+            else:
+                sendmail_path = findProgramPath('sendmail')
+        else:
+            if not os.path.exists(sendmail_path):
+                raise ValueError('sendmail_path "%s" does not exist.' %(sendmail_path,))
+
+        self.sendmail_path = sendmail_path
+
+
+
     def getProgramConfigDir(self):
         return self.config_dir
 
     def __str__(self):
         return str(self.__dict__)
+
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

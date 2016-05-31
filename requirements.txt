@@ -1,3 +1,4 @@
 configobj
-NamedAtomicLock
+NamedAtomicLock>=1.1.0
 func_timeout
+python-subprocess2

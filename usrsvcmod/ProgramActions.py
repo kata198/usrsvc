@@ -16,6 +16,8 @@
     ProgramActions - Some common actions dealing with process management.
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 from .Program import Program
 from .logging import logErr, logMsg
 
@@ -64,3 +66,6 @@ def getRunningProgram(programConfig):
                 return prog
 
     return prog
+
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

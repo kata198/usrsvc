@@ -16,9 +16,15 @@
     Monitoring Stuff
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import time
 
-from ..logging import logErr
+# classproperty
+from ..compat import *
+
+from ..logging import logErr, logMsg
+from ..util import camelToWords
 
 __all__ = ('MonitoringBase', 'MonitoringList')
 
@@ -28,6 +34,9 @@ class MonitoringBase(object):
         MonitoringBase - A base class for monitoring. Right now mostly just a placeholder,
             but will be used when more advanced monitors are created.
     '''
+
+    def __init__(self):
+        self.reason = ''
 
 
     @classmethod
@@ -51,6 +60,20 @@ class MonitoringBase(object):
         '''
         return False
 
+    def setReason(self, reason, logReason=True):
+        self.reason = reason
+        if logReason is True:
+            if reason[-1] != '\n':
+                reason += '\n'
+            logMsg('MONITOR ( %s ): %s' %(self.name, reason, ))
+
+    def getReason(self):
+        return getattr(self, 'reason', '')
+
+    @classproperty
+    def name(cls):
+        return camelToWords(cls.__name__)
+
 
 class MonitoringList(list):
     '''
@@ -73,6 +96,7 @@ class MonitoringList(list):
         ret = {
             'doRestart' : False,
             'triggeredAlert' : None,
+            'reason' : '',
             'runtime' : time.time(),
             'numRan' : 0
         }
@@ -90,9 +114,12 @@ class MonitoringList(list):
 
         if shouldRestart is True:
             ret['triggeredAlert'] = mon
+            ret['reason'] = mon.getReason()
             ret['doRestart'] = True
 
         ret['runtime'] = time.time() - ret['runtime']
 
         return ret
                 
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

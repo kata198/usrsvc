@@ -16,6 +16,8 @@
     debug - Controls some extra diagnostic debugging stuff
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 __all__ = ('isDebugEnabled', 'toggleDebug')
 
 global _USRSVCMOD_DEBUG
@@ -28,3 +30,6 @@ def isDebugEnabled():
 def toggleDebug(isEnabled):
     global _USRSVCMOD_DEBUG
     _USRSVCMOD_DEBUG = bool(isEnabled)
+
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

@@ -23,8 +23,9 @@
     usrsvcd is the daemon associated with usrsvc. It keeps processes running, handles monitoring, etc.
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
 
-
+import datetime
 import os
 import sys
 import signal
@@ -35,6 +36,8 @@ import traceback
 
 from collections import defaultdict
 
+import usrsvcmod.mail as mail
+
 from usrsvcmod.logging import logMsg, logErr
 from usrsvcmod.debug import isDebugEnabled, toggleDebug
 from usrsvcmod.constants import ReturnCodes
@@ -43,9 +46,11 @@ from usrsvcmod.UsrsvcConfig import UsrsvcConfig
 from usrsvcmod.Program import Program
 from usrsvcmod.ProgramActions import getRunningProgram
 from usrsvcmod.Monitoring.Factory import MonitoringFactory
-from usrsvcmod.util import waitUpTo
+from usrsvcmod.util import waitUpTo, getUsername, getHostname, findProgramPath
 
 from func_timeout import func_timeout, FunctionTimedOut
+
+from NamedAtomicLock import NamedAtomicLock
 
 def printUsage():
     sys.stderr.write('''Usage: usrsvcd (Optional: [action])
@@ -81,6 +86,9 @@ keepGoing = True
 global restarting
 restarting = set()
 
+myUsername = None
+myHostname = None
+
 def handle_sigterm(*args, **kwargs):
     '''
         handle_sigterm - SIGTERM handler. Sets the "keepGoing" global to False, which gracefully terminates everything after current opset.
@@ -108,6 +116,7 @@ def rereadConfig(*args, **kwargs):
 
     config = config2
     configureStdoutStderr(config.mainConfig)
+    logMsg('Successfully loaded new config.\n')
     
 
 def getConfig():
@@ -221,6 +230,7 @@ def handleArg(arg):
         if not usrsvcdProg:
             logErr('usrsvcd is not running.\n')
             return ReturnCodes.SUCCESS # Not an error condition, because the changes will be applied whenever usrsvcd is started.
+        logMsg('Config okay, triggering reload...\n')
         os.kill(usrsvcdProg.pid, signal.SIGUSR1)
         return ReturnCodes.SUCCESS
 
@@ -231,6 +241,7 @@ def handleArg(arg):
             return ReturnCodes.INVALID_CONFIG
         usrsvcdProg = getUsrsvcdProg()
         if usrsvcdProg:
+            logMsg('Sending SIGTERM to running usrsvcd pid=%d\n' %(usrsvcdProg.pid, ) )
             try:
                 os.kill(usrsvcdProg.pid, signal.SIGTERM)
             except Exception as e:
@@ -242,8 +253,9 @@ def handleArg(arg):
             # Wait for process to die cleanly.
             time.sleep(.1)
             pidDir = '/proc/%d' %(usrsvcdProg.pid, )
-            if not waitUpTo(os.path.exists, ('/proc/%d' %(usrsvcdProg.pid, ), ), timeout=5.0, interval=.1):
+            if not waitUpTo(os.path.exists, ('/proc/%d' %(usrsvcdProg.pid, ), ), timeout=7.0, interval=.1):
                 # Took too long, send it sig kill.
+                logErr('usrsvcd did not die within 7 seconds, sending SIGKILL\n')
                 try:
                     os.kill(usrsvcdProg.pid, signal.SIGKILL)
                 except:
@@ -253,7 +265,18 @@ def handleArg(arg):
             if sys.argv[0].startswith('/'):
                 cmd = [sys.argv[0]]
             else:
-                cmd = ['usrsvcd']
+                usrsvcdPath = findProgramPath('usrsvcd')
+                if usrsvcdPath is None:
+                    logErr('Unable to find usrsvcd on PATH.\n')
+                    # Try to find it via sys.argv[0]
+                    usrsvcdPath = os.getcwd() + '/' + sys.argv[0]
+                    if not os.access(usrsvcdPath, os.X_OK):
+                        logErr('Unable to find usrsvcd based on running executable.\n')
+                        return ReturnCodes.GENERAL_FAILURE
+                    else:
+                        logMsg('Found usrsvcd based on running executable: %s\n' %(usrsvcdPath,))
+
+                cmd = [usrsvcdPath]
             if isDebugEnabled():
                 cmd.append('--debug')
             subprocess.Popen(cmd, shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr, env=os.environ)
@@ -286,6 +309,9 @@ def doMonitoring():
         if keepGoing is False:
             return
     restartProcesses = {}
+
+    # Offset us a bit so we are less likely to contend for time
+    time.sleep(.5)
 
     # TODO: We can be extra paranoid and have restarting be a dict of programName -> time. After a timeout, we can assert there was some unrecoverable issue with the restart operation and not continue to block the main thread.
     while keepGoing is True:
@@ -346,6 +372,14 @@ def doMonitoring():
                 if monitorResults['doRestart'] is True:
                     logErr('MONITOR: Restarting %s.\n\n%s\n' %(programName, str(monitorResults)))
                     restarting.add(programName)
+                    if programConfig.email_alerts:
+                        triggeredAlert = monitorResults['triggeredAlert']
+
+                        subject = "%s - %s monitor-triggred restart" %(myUsername, programName)
+                        body = 'At %s, %s running on %s was restarted due to triggered monitor.\n\nMonitor ( %s ) triggered: %s\n\nYours,\nusrsvcd (%s)\n' %(datetime.datetime.now().ctime(), programName, myHostname, triggeredAlert.name, monitorResults['reason'], myUsername)
+
+                        mailData = {'to' : programConfig.email_alerts, 'subject' : subject, 'body' : body}
+                        addMail(mailData)
 #                    restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
                     restartProcesses[programName] = callUsrsvc(['restart', programName], config)
         except Exception as e:
@@ -365,6 +399,75 @@ def doMonitoring():
         time.sleep(1)
 
     return
+
+
+global mailQueue
+mailQueue = []
+
+def addMail(mailData):
+    global mailQueue
+    global config
+
+    sendmailPath = config.mainConfig.sendmail_path
+    if not sendmailPath:
+        logErr('Would have sent email, but sendmail_path is not configured!\n%s\n' %(str({'to':to, 'subject':subject, 'body':body}),))
+        return False
+
+    mailData['sendmailPath'] = sendmailPath
+    mailQueue.append(mailData)
+    return True
+
+
+def sendEmail(mailData):
+    try:
+        mail.sendmail(**mailData)
+    except mail.SendmailFailedException as e:
+        logErr('Failed to send mail: %s\nMail was: %s\n' %(str(e), str(mailData)) )
+        return False
+    except Exception as e:
+        logErr('Exception when sending mail: %s\nMail was: %s\n' %(str(e), str(mailData)) )
+        return False
+
+    return True
+    
+
+def doMail():
+    global config
+    global keepGoing
+    global mailQueue
+
+    # Wait a little before doing anything
+    for i in range(3):
+        if keepGoing is False:
+            return
+        time.sleep(1)
+
+    # Offset us a bit from other threads
+    time.sleep(.66)
+
+    mailThreads = []
+    while keepGoing:
+        for mailThread in mailThreads[:]:
+            try:
+                if mailThread.is_alive() is True:
+                    continue
+
+                mailThread.join()
+            except Exception as e:
+                logErr('Error in mail thread: %s. Removing.\n' %(str(mailThread),))
+            mailThreads.remove(mailThread)
+        for item in mailQueue[:]:
+            thread = threading.Thread(target=sendEmail, args = (item,))
+            thread.daemon = True
+            thread.start()
+
+            mailThreads.append(thread)
+            mailQueue.remove(item)
+
+        time.sleep(2)
+
+    
+
 
 
 def callUsrsvc(args, config):
@@ -456,6 +559,9 @@ if __name__ == '__main__':
     programWasSeenRunning = set()
     programLastRestartAttemptAt = {}
 
+    myUsername = getUsername()
+    myHostname = getHostname()
+
     # Number of start attempts per app. Resets to 0 after a successful start.
     numStartAttempts = defaultdict(int)
 
@@ -463,6 +569,9 @@ if __name__ == '__main__':
 
     monitoringThread = threading.Thread(target=doMonitoring)
     monitoringThread.start()
+
+    mailThread = threading.Thread(target=doMail)
+    mailThread.start()
 
     ### START MAIN LOOP  ###
     while keepGoing is True:
@@ -489,6 +598,10 @@ if __name__ == '__main__':
                     # If they don't want this managed by usrsvcd, continue to next program
                     continue
 
+                lock = NamedAtomicLock('.lock_usrsvc' + programName, maxLockAge=30)
+                # Someone is interacting via usrsvc
+                if lock.isHeld:
+                    continue
 
                 prog = None
                 try:
@@ -519,6 +632,9 @@ if __name__ == '__main__':
                 doStart = False
                 isRestart = False
 
+                if lock.isHeld:
+                    continue
+
                 if programConfig.autostart is True and programWasStarted[programName] is False:
                     # Process was not running when we started, and autostart is True, so start it.
                     logMsg("%s was not running and autostart=True. Trying to start [Attempt %d].\n" %(programName, numStartAttempts[programName]+1))
@@ -543,6 +659,16 @@ if __name__ == '__main__':
 
 #                    startProcesses[programName] = subprocess.Popen(['usrsvc',  'start', programName], shell=False, close_fds=False, stdout=sys.stdout, stderr=sys.stderr)
                     startProcesses[programName] = callUsrsvc(['start', programName], config)
+                    if programConfig.email_alerts:
+                        if isRestart is True:
+                            subject = "%s - %s restarting" %(myUsername, programName, )
+                            bodyPart = "was restarted"
+                        else:
+                            subject = "%s - %s starting" %(myUsername, programName, )
+                            bodyPart = "was started"
+                        body = 'At %s, %s running on %s %s because it was found not running.\nCheck usrsvcd logs for more information.\n\nYours,\nusrsvcd (%s)\n' %(datetime.datetime.now().ctime(), programName, myHostname, bodyPart, myUsername)
+                        mailData = {'to' : programConfig.email_alerts, 'subject' : subject, 'body' : body}
+                        addMail(mailData)
             except Exception as e:
                 # If we got a non-specific exception, assume something happened like something restarted the process outside of this loop, and ignore it.
                 if isDebugEnabled():
@@ -551,9 +677,12 @@ if __name__ == '__main__':
                 pass
 
 
-        time.sleep(2) 
+        time.sleep(2)
 
     ### END MAIN LOOP  ###
  
     # Join any threads, which should all be exiting when "keepGoing" switches to False.   
     monitoringThread.join()
+    mailThread.join()
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

@@ -16,6 +16,8 @@
     'ProgramConfig' represents a single program config
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import os
 import re
 import shlex
@@ -39,6 +41,7 @@ class ProgramConfig(object):
             enabled=True,
             inherit_env=True, Env=None, Monitoring=None,
             defaults=None,
+            email_alerts=None,
             **kwargs):
         '''
             name - Determined from section name [Program:TheName] has "TheName"
@@ -68,6 +71,9 @@ class ProgramConfig(object):
                 * stderr - Absolute path to a file to be used for stderr, or "stdout" to redirect to stdout. Default is to redirect stderr to stdout. May be same filename as stdout.
                 * defaults - This can reference a "DefaultSettings" section defined elsewhere, i.e. to reference [DefaultSettings:MySettings] use "defaults=MySettings". If provided, this Program will inherit the settings defined in the DefaultSettings as the defaults. Anything provided explicitly in this Program will override those found in the defaults.
                 * inherit_env - Boolean, default True. If True, will inherit the env from "usrsvc" or "usrsvcd". Otherwise, will only use the Env as defined in the Env subsection.
+
+                * mail_alerts - String, if set, when usrsvcd starts/restarts a process, an email alert will go to this address.
+
 
                 Supports the following subsections:
 
@@ -164,8 +170,13 @@ class ProgramConfig(object):
 
             self.stderr = stderr
 
+        self.email_alerts = email_alerts
+
         if kwargs:
             raise ValueError('Unknown config options: %s' %(str(list(kwargs.keys())), ))
 
     def __str__(self):
         return str(self.__dict__)
+
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
