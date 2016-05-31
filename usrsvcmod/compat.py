@@ -13,7 +13,7 @@
     current website intended for distribution of usrsvc.
 
 
-    compat stuff
+    compat stuff. import * to get everything.
 '''
 
 # vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
@@ -30,6 +30,14 @@ except NameError:
             return self.getter(owner)
 
         allList.append('classproperty')
+
+try:
+    unicode
+except NameError:
+    unicode = str
+
+    allList.append('unicode')
+
 
 __all__ = tuple(allList)
 
