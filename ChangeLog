@@ -1,3 +1,6 @@
+* 1.4.1 - May 30 2016
+- Add "-P" as an alias to "--parallel" for usrsvc application
+- Remove lingering old "usrsvc --help" output in README.md
 
 * 1.4.0 - May 30 2016
 - Add alert mail functionality - When a program is started/restarted and

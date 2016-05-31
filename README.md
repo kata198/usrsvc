@@ -82,7 +82,7 @@ The "usrsvc" tool handles the basic operations of starting/stopping/restarting/s
 	--------
 
 		Parallel:
-			When doing start/stop/restart all, you may add "--parallel" to perform 
+			When doing start/stop/restart all, you may add "--parallel" or "-P" to perform 
 			the action on all items in parallel.
 			  
 
@@ -96,18 +96,6 @@ The "usrsvc" tool handles the basic operations of starting/stopping/restarting/s
 
 		Run "usrsvc --readme" or see https://github.com/kata198/usrsvc/blob/master/README.md 
 		  for more documentation.
-
-
-	Usage: usrsvc [start/stop/restart/status] [program name]
-	  Performs the requested action on the given program name.
-	 "all" can be used for start/stop/restart.
-
-	When doing start/stop/restart all, you may add "--parallel" to perform the action on all items in parallel.
-
-	Return code when using "all" is 0 when all success, or 1 for any failure, and the failure codes will be printed to stderr.
-
-
-	Uses the config file found at $HOME/usrsvc.cfg
 
 
 The tool will output some basic information about what happened, and give a meaningful return code (0 = success, otherwise see https://raw.githubusercontent.com/kata198/usrsvc/master/usrsvcmod/constants.py "ReturnCodes" object for the list of return codes used and descriptions).
