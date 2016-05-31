@@ -90,7 +90,7 @@ The "usrsvc" tool handles the basic operations of starting/stopping/restarting/s
 
 		Parallel:
 
-			When doing start/stop/restart all, you may add "\-\-parallel" to perform 
+			When doing start/stop/restart all, you may add "\-\-parallel" or "\-P" to perform 
 
 			the action on all items in parallel.
 

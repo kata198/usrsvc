@@ -1,4 +1,8 @@
-* 1.4.0 - ??? ?? ????
+* 1.4.1 - May 30 2016
+- Add "-P" as an alias to "--parallel" for usrsvc application
+- Remove lingering old "usrsvc --help" output in README.md
+
+* 1.4.0 - May 30 2016
 - Add alert mail functionality - When a program is started/restarted and
 "email_alerts" is set on a program config, an email will be sent to that
 address. Also adds "sendmail_path" on MainConfig, which defines an explicit

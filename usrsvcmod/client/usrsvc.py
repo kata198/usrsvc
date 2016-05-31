@@ -191,7 +191,7 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
   --------
 
     Parallel:
-        When doing start/stop/restart all, you may add "--parallel" to perform 
+        When doing start/stop/restart all, you may add "--parallel" or "-P" to perform 
         the action on all items in parallel.
           
 
@@ -220,7 +220,7 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
                 from usrsvcmod.client.readme import printReadme
                 printReadme(sys.stdout)
                 return ReturnCodes.HELP_MESSAGE
-            elif len(argv) == 4 and argv[1] in ('start', 'stop', 'restart') and argv[2] == 'all' and argv[3] == '--parallel':
+            elif len(argv) == 4 and argv[1] in ('start', 'stop', 'restart') and argv[2] == 'all' and (argv[3] == '--parallel' or argv[3] == '-P'):
                 parallelAll = True
             elif len(argv) != 3:
                 logErr('Invalid number of arguments.\n')
