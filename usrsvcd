@@ -86,6 +86,9 @@ keepGoing = True
 global restarting
 restarting = set()
 
+myUsername = None
+myHostname = None
+
 def handle_sigterm(*args, **kwargs):
     '''
         handle_sigterm - SIGTERM handler. Sets the "keepGoing" global to False, which gracefully terminates everything after current opset.
@@ -366,6 +369,14 @@ def doMonitoring():
                 if monitorResults['doRestart'] is True:
                     logErr('MONITOR: Restarting %s.\n\n%s\n' %(programName, str(monitorResults)))
                     restarting.add(programName)
+                    if programConfig.email_alerts:
+                        triggeredAlert = monitorResults['triggeredAlert']
+
+                        subject = "%s - %s monitor-triggred restart" %(myUsername, programName)
+                        body = 'At %s, %s running on %s was restarted due to triggered monitor.\n\nMonitor ( %s ) triggered: %s\n\nYours,\nusrsvcd (%s)\n' %(datetime.datetime.now().ctime(), programName, myHostname, triggeredAlert.name, monitorResults['reason'], myUsername)
+
+                        mailData = {'to' : programConfig.email_alerts, 'subject' : subject, 'body' : body}
+                        addMail(mailData)
 #                    restartProcesses[programName] = subprocess.Popen(['usrsvc', 'restart', programName], shell=False, close_fds=False, stdout=sys.stderr, stderr=sys.stderr)
                     restartProcesses[programName] = callUsrsvc(['restart', programName], config)
         except Exception as e:
@@ -643,7 +654,7 @@ if __name__ == '__main__':
                         else:
                             subject = "%s - %s starting" %(myUsername, programName, )
                             bodyPart = "was started"
-                        body = 'At %s %s on %s %s.\nCheck usrsvcd logs for more information.\n\nYours,\nusrsvcd (%s)\n' %(datetime.datetime.now().ctime(), programName, myHostname, bodyPart, myUsername)
+                        body = 'At %s, %s running on %s %s because it was found not running.\nCheck usrsvcd logs for more information.\n\nYours,\nusrsvcd (%s)\n' %(datetime.datetime.now().ctime(), programName, myHostname, bodyPart, myUsername)
                         mailData = {'to' : programConfig.email_alerts, 'subject' : subject, 'body' : body}
                         addMail(mailData)
             except Exception as e:

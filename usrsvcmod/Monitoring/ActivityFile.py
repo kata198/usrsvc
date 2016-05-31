@@ -35,6 +35,8 @@ class ActivityFileMonitor(MonitoringBase):
     '''
 
     def __init__(self, programName, activityFile, activityFileLimit):
+        MonitoringBase.__init__(self)
+
         self.programName = programName
         self.activityFile = activityFile
         self.activityFileLimit = activityFileLimit
@@ -63,13 +65,13 @@ class ActivityFileMonitor(MonitoringBase):
         try:
             # If activity file is not present, this is a fail and we restart.
             if not os.path.exists(activityFile):
-                logMsg('Restarting %s because activity file ( %s ) does not exist\n' %(programName, activityFile,))
+                self.setReason('Restarting %s because activity file ( %s ) does not exist\n' %(programName, activityFile,))
                 return True
             # Gather the mtime and see if we are past the threshold
             lastModified = os.stat(activityFile).st_mtime
             threshold = float(time.time() - self.activityFileLimit)
             if lastModified < threshold:
-                logMsg('Restarting %s because it has not modified activity file ( %s ) in %.4f seconds. Limit is %d.\n' %(programName, activityFile, float(threshold - lastModified), activityFileLimit))
+                self.setReason('Restarting %s because it has not modified activity file ( %s ) in %.4f seconds. Limit is %d.\n' %(programName, activityFile, float(threshold - lastModified), activityFileLimit) )
                 return True
         except FunctionTimedOut:
             logErr('MONITOR: ActivityFile timed out on %s\n' %(programName,))
