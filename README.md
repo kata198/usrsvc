@@ -61,6 +61,11 @@ All of the configuration is through simple ini-style config files, and supports 
 
 Usrsvc and usrsvcd are very verbose with logging, and try to be as specific as possible. All logs contain timestamps and meaningful error codes/descriptions, to simplify and even make possible evaluation of issues with your services.
 
+**Email Alerts**
+
+When the "email\_alerts" property is set on a Program or a Program Group, an email will be sent when Monitoring triggers a restart, or the program is found to not be running and is started by usrsvcd.
+
+
 usrsvc (tool)
 -------------
 
