@@ -69,9 +69,10 @@ class ActivityFileMonitor(MonitoringBase):
                 return True
             # Gather the mtime and see if we are past the threshold
             lastModified = os.stat(activityFile).st_mtime
-            threshold = float(time.time() - self.activityFileLimit)
+            now = time.time()
+            threshold = float(now - self.activityFileLimit)
             if lastModified < threshold:
-                self.setReason('Restarting %s because it has not modified activity file ( %s ) in %.4f seconds. Limit is %d.\n' %(programName, activityFile, float(threshold - lastModified), activityFileLimit) )
+                self.setReason('Restarting %s because it has not modified activity file ( %s ) in %.4f seconds. Limit is %d seconds.\n' %(programName, activityFile, float(now - lastModified), activityFileLimit) )
                 return True
         except FunctionTimedOut:
             logErr('MONITOR: ActivityFile timed out on %s\n' %(programName,))
