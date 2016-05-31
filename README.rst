@@ -64,7 +64,7 @@ Usrsvc and usrsvcd are very verbose with logging, and try to be as specific as p
 
 **Email Alerts**
 
-When the "email\_alerts" property is set on a Program or a Program Group, an email will be sent when Monitoring triggers a restart, or the program is found to not be running and is started by usrsvcd.
+When the "email_alerts" property is set on a Program or a Program Group, an email will be sent when Monitoring triggers a restart, or the program is found to not be running and is started by usrsvcd.
 
 
 usrsvc (tool)
