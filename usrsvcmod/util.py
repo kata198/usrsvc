@@ -93,5 +93,31 @@ def findProgramPath(programName, environPath=None):
 
     return None
 
+def camelToWords(camelStr):
+    '''
+        camelToWords - Converts a camel-case item into words, by appending a space before every capital letter at index i>0
+
+        Example: ActivityFileMonitor returns "Activity File Monitor"
+
+        @param camelStr <str> - A string to convert
+
+        @return <str> - Words transformed from camel case string
+    '''
+    if len(camelStr) == 0:
+        return ''
+
+    ret = []
+    camelStrSplit = list(camelStr)
+
+    # If first char is lowercase, uppercase it.
+    ret.append(camelStrSplit[0].upper())
+
+    for x in camelStrSplit[1:]:
+        if x.isupper():
+            ret.append(' ')
+        ret.append(x)
+
+    return ''.join(ret)
+
 
 # vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
