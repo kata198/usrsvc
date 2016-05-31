@@ -310,6 +310,9 @@ def doMonitoring():
             return
     restartProcesses = {}
 
+    # Offset us a bit so we are less likely to contend for time
+    time.sleep(.5)
+
     # TODO: We can be extra paranoid and have restarting be a dict of programName -> time. After a timeout, we can assert there was some unrecoverable issue with the restart operation and not continue to block the main thread.
     while keepGoing is True:
         try:
@@ -432,6 +435,15 @@ def doMail():
     global config
     global keepGoing
     global mailQueue
+
+    # Wait a little before doing anything
+    for i in range(3):
+        if keepGoing is False:
+            return
+        time.sleep(1)
+
+    # Offset us a bit from other threads
+    time.sleep(.66)
 
     mailThreads = []
     while keepGoing:
