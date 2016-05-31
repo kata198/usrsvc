@@ -16,6 +16,8 @@
     'MainConfig' is the main configuration file
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import os
 
 from .util import findProgramPath
@@ -76,3 +78,6 @@ class MainConfig(object):
 
     def __str__(self):
         return str(self.__dict__)
+
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

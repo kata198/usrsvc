@@ -16,6 +16,8 @@
     'ProgramConfig' represents a single program config
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import os
 import re
 import shlex
@@ -175,3 +177,6 @@ class ProgramConfig(object):
 
     def __str__(self):
         return str(self.__dict__)
+
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

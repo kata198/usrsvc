@@ -16,6 +16,8 @@
     logging - some general logging functions
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import datetime
 import sys
 
@@ -42,3 +44,5 @@ def logErr(msg, includeDate=True):
     if includeDate is True:
         sys.stderr.write("[%s] - %s" %(_getCtime(), msg))
     sys.stderr.flush()
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

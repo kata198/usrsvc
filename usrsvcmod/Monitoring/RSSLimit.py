@@ -16,6 +16,8 @@
     RSSLimitMonitor - Monitor maximum RSS (Resident Set Size)
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 from func_timeout import FunctionTimedOut
 
 from . import MonitoringBase
@@ -76,3 +78,5 @@ class RSSLimitMonitor(MonitoringBase):
         return False 
 
 
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

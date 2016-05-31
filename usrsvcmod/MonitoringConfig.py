@@ -16,6 +16,8 @@
     'MonitoringConfig' represents the monitoring subsection of a ProgramConfig
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 from .configcommon import getConfigValueBool, getConfigValueInt, getConfigValueFloat
 
 __all__ = ('MonitoringConfig',)
@@ -60,3 +62,6 @@ class MonitoringConfig(object):
         
     def __str__(self):
         return str(self.__dict__)
+
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

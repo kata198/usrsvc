@@ -16,6 +16,8 @@
     'Program' represents a program, running or not.
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import os
 import signal
 import shlex
@@ -397,3 +399,6 @@ class Program(object):
 
     def __str__(self):
         return str(self.__dict__)
+
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

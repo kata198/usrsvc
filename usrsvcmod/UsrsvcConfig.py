@@ -17,6 +17,8 @@
     'UsrsvcConfig' is the main config class used within usrsvc
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import copy
 import os
 import glob
@@ -136,3 +138,6 @@ class UsrsvcConfig(object):
             @return <dict> - program name <str> to ProgramConfig
         '''
         return self.programConfigs
+
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

@@ -16,6 +16,8 @@
     Kind of a psuedo-factory pattern for Monitoring. Not a regular factory because I want to be able to order priority, etc
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 from . import MonitoringList
 from .ActivityFile import ActivityFileMonitor
 from .RSSLimit import RSSLimitMonitor
@@ -51,3 +53,5 @@ class MonitoringFactory(object):
 
         return ret
 
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

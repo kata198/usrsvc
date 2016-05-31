@@ -15,6 +15,9 @@
 
     usrsvc is a user process manager
 '''
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import re
 
 __all__ = ('getConfigValueBool', 'getConfigValueInt', 'getConfigValueFloat')
@@ -70,3 +73,4 @@ def getConfigValueFloat(value, name=''):
 
 
         
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

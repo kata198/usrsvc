@@ -16,6 +16,8 @@
     usrsvc is a user process manager
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import os
 import socket
 import pwd
@@ -90,3 +92,6 @@ def findProgramPath(programName, environPath=None):
             return tryPath
 
     return None
+
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

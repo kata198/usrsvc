@@ -15,6 +15,7 @@
 
     usrsvc is the tool to start/stop/restart and get status on services. usrsvcd is the daemon for autostart, autorestart, monitoring, etc.
 '''
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
 
 import sys
 from usrsvcmod.client.usrsvc import Usrsvc
@@ -27,3 +28,5 @@ if __name__ == '__main__':
         sys.exit(ReturnCodes.INVALID_CONFIG)
 
     sys.exit(client.main(sys.argv))
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

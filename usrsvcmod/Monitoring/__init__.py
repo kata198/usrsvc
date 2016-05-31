@@ -16,6 +16,8 @@
     Monitoring Stuff
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import time
 
 from ..logging import logErr
@@ -96,3 +98,5 @@ class MonitoringList(list):
 
         return ret
                 
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

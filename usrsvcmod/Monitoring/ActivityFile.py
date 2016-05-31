@@ -16,6 +16,8 @@
     ActivityFileMonitor - Asserts that a specific file or directory should be modified within a certain threshold
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import os
 import time
 
@@ -80,3 +82,4 @@ class ActivityFileMonitor(MonitoringBase):
         return False 
 
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

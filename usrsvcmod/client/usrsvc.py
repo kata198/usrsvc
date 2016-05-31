@@ -15,6 +15,8 @@
     usrsvc is the tool to start/stop/restart and get status on services. usrsvcd is the daemon for autostart, autorestart, monitoring, etc.
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 
 import os
 import copy
@@ -239,3 +241,5 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
            return ReturnCodes.UNKNOWN_FAILURE
 
 
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

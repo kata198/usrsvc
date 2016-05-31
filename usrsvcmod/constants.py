@@ -16,6 +16,8 @@
     constants for usrsvc
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 try:
     from enum import IntEnum
 except ImportError:
@@ -98,3 +100,4 @@ class ReturnCodes(IntEnum):
 
             return 'UNKNOWN(%d)' %(returnCodeValue,)
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :

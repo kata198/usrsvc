@@ -16,6 +16,8 @@
     usrsvc mail function
 '''
 
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
+
 import subprocess2 as subprocess
 
 from .util import getUsername, getHostname
@@ -54,3 +56,5 @@ def sendmail(sendmailPath, to, subject, body):
     else:
         raise SendmailFailedException('Sendmail at %s failed to send email in %d seconds and had to be terminated. to=%s subject=%s' %(sendmailPath, SENDMAIL_TIMEOUT, to, subject))
 
+
+# vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
