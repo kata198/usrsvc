@@ -23,6 +23,11 @@ from usrsvcmod.constants import ReturnCodes
 from usrsvcmod.debug import toggleDebug
 
 if __name__ == '__main__':
+    if '--version' in sys.argv:
+        from usrsvcmod import __version__ as vers
+        sys.stderr.write("usrsvc version %s\n" %(vers,))
+        sys.exit(ReturnCodes.HELP_MESSAGE)
+
     if '--debug' in sys.argv:
         sys.stderr.write('DEBUG ON\n')
         toggleDebug(True)
