@@ -19,9 +19,15 @@
 
 import sys
 from usrsvcmod.client.usrsvc import Usrsvc
-from  usrsvcmod.constants import ReturnCodes
+from usrsvcmod.constants import ReturnCodes
+from usrsvcmod.debug import toggleDebug
 
 if __name__ == '__main__':
+    if '--debug' in sys.argv:
+        sys.stderr.write('DEBUG ON\n')
+        toggleDebug(True)
+        sys.argv.remove('--debug')
+
     try:
         client = Usrsvc()
     except ValueError:

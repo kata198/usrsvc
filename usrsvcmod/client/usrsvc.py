@@ -199,6 +199,9 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
     Parallel:
         When doing start/stop/restart all, you may add "--parallel" or "-P" to perform 
         the action on all items in parallel.
+
+    Debug:
+        Add "--debug" to add extra debugging messages.
           
 
   Config:
@@ -217,6 +220,7 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
     
     def main(self, argv):
         parallelAll = False
+            
         try:
 
             if '--help' in argv:
