@@ -25,6 +25,8 @@ import shlex
 from .configcommon import getConfigValueBool, getConfigValueInt, getConfigValueFloat
 from .MonitoringConfig import MonitoringConfig
 
+from .logging import logMsg
+
 __all__ = ('ProgramConfig', )
 
 class ProgramConfig(object):
@@ -87,7 +89,14 @@ class ProgramConfig(object):
         '''
 
 
+        command = command.strip()
+
+        if command.endswith('&'):
+            logMsg('Warning: Program %s is configured to launch in the background (ends with &) which is not supported. Disregarding final &.\n' %(name,))
+            command = command[:-1]
+
         self.command = command
+
         self.pidfile = pidfile
         if not pidfile or pidfile[0] != '/':
             raise ValueError('pidfile must be defined for a program and must be an absolute path.')
