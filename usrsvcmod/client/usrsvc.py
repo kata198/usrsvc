@@ -107,7 +107,13 @@ class Usrsvc(object):
         if not lock.acquire(31):
             logErr('Cannot acquire lock for %s. Is something else looping trying to access it? Try the command again.\n' %(programName,))
             return ReturnCodes.TRY_AGAIN
-        ret = self._doAction(args)
+        try:
+            ret = self._doAction(args)
+        except Exception as e:
+            logErr('Got exception %s for %s %s\n' %(str(e), programName, str(args)) )
+            lock.release()
+            raise e
+
         lock.release()
         return ret
 
@@ -193,6 +199,9 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
     Parallel:
         When doing start/stop/restart all, you may add "--parallel" or "-P" to perform 
         the action on all items in parallel.
+
+    Debug:
+        Add "--debug" to add extra debugging messages.
           
 
   Config:
@@ -211,6 +220,7 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
     
     def main(self, argv):
         parallelAll = False
+            
         try:
 
             if '--help' in argv:
@@ -237,7 +247,8 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
                 return self.doAction(argv[1:])
 
         except Exception  as  e:
-           logErr('Error  in main %s:  %s\n'  %(str(argv), str(e)))
+           logErr('Error in main %s:  %s\n'  %(str(argv), str(e)))
+           traceback.print_exc()
            return ReturnCodes.UNKNOWN_FAILURE
 
 

@@ -22,13 +22,18 @@ import os
 import signal
 import shlex
 import subprocess
+import re
 import time
+import traceback
 
 from .constants import ReturnCodes
 from .logging import logMsg, logErr
 from .util import  waitUpTo
+from usrsvcmod.debug import isDebugEnabled
 
 __all__ = ('Program',)
+
+STAT_PATTERN = re.compile('^(?P<pid>[\d]+)[ ][\(](?P<cwd>.+)[\)][ ](?P<state>[^ ]+)[ ](?P<ppid>[\d]+)[ ](?P<unparsed>.*)$')
 
 class Program(object):
     '''
@@ -69,8 +74,12 @@ class Program(object):
                 }
 
         '''
+        cmdlineContents = b''
         with open('/proc/%d/cmdline' %(pid,), 'rb') as f:
             cmdlineContents = f.read()
+
+        if not cmdlineContents:
+            raise KeyError('Process pid=%d has empty cmdline' %(pid,))
         
         # Split by null, and strip the trailing null
         cmdlineSplit = cmdlineContents.split(b'\x00')[:-1]
@@ -116,6 +125,110 @@ class Program(object):
 
         return bool(programConfig.proctitle_re.search(self.cmdline))
 
+
+    @classmethod
+    def getStatInfo(cls, pid):
+        '''
+            getStatInfo - Parses /proc/$PID/stat and returns a dict of contents.
+
+            Dict is not complete, all members currently needed are present, everything else will be in "unparsed"
+
+            @return <dict> - Dict of stat fields. Current supported keys are:
+                pid - Process ID of this process
+                cwd - Current working directory of process
+                state - State code
+                ppid  - Parent Pid
+
+            @raises - KeyError if process does not exist
+                      ValueError if stat file cannto be parsed
+        '''
+        statFilename = '/proc/%d/stat' %(int(pid),)
+        try:
+            with open(statFilename, 'rt') as f:
+                contents = f.read()
+        except Exception as e:
+            raise KeyError('Cannot read stat file "%s" : %s' %(statFilename, str(e)))
+
+        statInfo = STAT_PATTERN.match(contents)
+        if not statInfo:
+            raise ValueError('Could not parse stat file, "%s"' %(statFilename, ))
+
+        groupDict = statInfo.groupdict()
+        groupDict['pid'] = int(groupDict['pid'])
+        groupDict['ppid'] = int(groupDict['ppid'])
+        return groupDict
+
+    @classmethod
+    def getChildPids(cls, pid):
+        '''
+            getChildPids - Get pids of children of a given process.
+
+            Note -- this is on the order of 100x faster than using psutil, so that's why it's reimplemented.
+
+            @param pid <int> - A process pid
+
+            @return list<int> - List of children pids
+        '''
+        myPids = cls.getMyRunningPids()
+        pid = int(pid)
+
+        childPids = []
+
+        for myPid in myPids:
+            try:
+                statInfo = cls.getStatInfo(myPid)
+            except:
+                continue
+            if pid == statInfo['ppid']:
+                childPids.append(myPid)
+
+        return childPids
+
+    @classmethod
+    def getAllChildPidsInTree(cls, rootPid):
+        '''
+            getAllChildPidsInTree - Get pids of children of given process, and their children, and their children...
+
+            @param rootPid <int> - A process pid
+
+            @return list<int> - Flat list of all child pids and their children.
+        '''
+        childPids = Program.getChildPids(rootPid)
+        if not childPids:
+            return []
+
+        # Get children of all children as well
+        newChildPids = childPids[:]
+        while newChildPids:
+            newChildPids2 = []
+            for newChildPid in newChildPids:
+                childChildPids = Program.getChildPids(newChildPid)
+                if isDebugEnabled() and childChildPids:
+                    logMsg('DEBUG: Add child-of-child %d pids: %s\n' %(newChildPid, str(childChildPids)))
+                newChildPids2 += childChildPids
+                childPids += childChildPids
+            newChildPids = newChildPids2
+
+        return childPids
+
+    @classmethod
+    def getParentPid(cls, pid):
+        '''
+            getParentPid - Get parent pid of given process pid.
+
+            @param pid <int> - Process pid
+
+            @return <int/None> - Integer of parent pid of @pid, or None if could not determine (like program not running)
+        '''
+        pid = int(pid)
+        try:
+            statInfo = cls.getStatInfo(pid)
+        except:
+            return None
+
+        return statInfo['ppid']
+
+
     @classmethod
     def createFromPidFile(cls, pidfile):
         '''
@@ -133,6 +246,28 @@ class Program(object):
         return cls(pidfile, pid, running=True, **procCmdline)
 
     @classmethod
+    def getMyRunningPids(cls):
+        '''
+            getMyRunningPids - Get all running pids which are owned by the current user.
+
+            @return - List of all running pids.
+
+            When iterating, you likely want to wrap in try/except incase the pid stops running.
+        '''
+        myUid = os.getuid()
+
+        allMyPids = []
+        # Do in a loop incase processes are created/destroyed between getting the list and checking it
+        for procItem in os.listdir('/proc'):
+            try:
+                if procItem.isdigit() and os.stat('/proc/' + procItem).st_uid == myUid:
+                    allMyPids.append(int(procItem))
+            except:
+                pass
+
+        return allMyPids
+
+    @classmethod
     def createFromRunningProcesses(cls, programConfig):
         '''
             createFromRunningProcesses - Create a Program using programConfig. scans all running processes, and returns a constructed Program if a match is found.
@@ -143,15 +278,7 @@ class Program(object):
 
             Should not raise anything.
         '''
-        myUid = os.getuid()
-        allMyPids = []
-        # Do in a loop incase processes are created/destroyed between getting the list and checking it
-        for procItem in os.listdir('/proc'):
-            try:
-                if procItem.isdigit() and os.stat('/proc/' + procItem).st_uid == myUid:
-                    allMyPids.append(int(procItem))
-            except:
-                pass
+        allMyPids = cls.getMyRunningPids()
 
         proctitleRE = programConfig.proctitle_re
 
@@ -278,35 +405,98 @@ class Program(object):
 
         success = True
 
-        pollTime = min(programConfig.success_seconds, .1)
-        while time.time() < successAfter:
-            time.sleep(pollTime)
-            pollResult = pipe.poll()
-            if pollResult is not None:
-                logErr('(%s) - Exited with code=%d\n' %(programConfig.name, pollResult))
-                success = False
-                break
+        # Ensure we poll at least 5 times
+        pollTime = min(programConfig.success_seconds / 5.0, .1)
 
         if success is False:
             # We've failed to restart after the given number of tries.
             return ReturnCodes.PROGRAM_EXITED_UNEXPECTEDLY
 
-        # Started successfully, update our dict.
-        if useShell is False:
-            self.pid = int(pipe.pid)
-        else:
-            # If they are using shell, we don't want to match the shell subprocess. So try to find a match by title.
-            matchedProgram = Program.createFromRunningProcesses(programConfig)
-            while matchedProgram is None and time.time() < successAfter:
-                time.sleep(.1)
-                matchedProgram = Program.createFromRunningProcesses(programConfig)
+        # Check if useshell is True, but we didn't actually use one.
+        if useShell is True:
+            cmdline = None
+            try:
+                cmdline = self._getProcCmdline(pipe.pid)
+            except:
+                # Program died, we will catch below.
+                pass
+            if cmdline is not None and not cmdline['cmdline'].startswith('/bin/sh -c'):
+                logMsg('%s - useshell is set to True, but program does not require a shell parent. Resetting useShell to False.\n' %(programConfig.name,))
+                programConfig.use_shell = useShell = False
+                useShell = False
 
-            if matchedProgram is None:
-                logErr('(%s) - Failed to find program matching proctitle_re. Shell pid is: %d\n' %(programConfig.name, pipe.pid))
+        # Started successfully, update our dict.
+        # If they are using shell, we don't want to match the shell subprocess. So search child processes until we find it.
+        rootPid = int(pipe.pid)
+        firstChildIsProcess = False
+        foundMatchingChild = False
+
+        if useShell is False:
+            try:
+                cmdline = self._getProcCmdline(rootPid)
+            except:
+                # Program died, we will catch below.
+                pass
+            if cmdline is not None and bool(programConfig.proctitle_re.search(cmdline['cmdline'])):
+                if isDebugEnabled():
+                    logMsg('DEBUG: first child is process\n' )
+                firstChildIsProcess = True
+                foundMatchingChild = True
+                self.pid = rootPid
+
+        
+        while time.time() < successAfter:
+            pollResult = pipe.poll()
+            if pollResult is not None:
+                if useShell is True:
+                    whatExited = "shell"
+                else:
+                    whatExited = "process"
+                logErr('(%s) - Parent %s exited with code=%d\n' %(programConfig.name, whatExited, pollResult))
                 return ReturnCodes.PROGRAM_FAILED_TO_LAUNCH
 
-            self.pid = matchedProgram.pid
-            
+            if firstChildIsProcess is True:
+                continue
+
+            if isDebugEnabled():
+                logMsg('DEBUG: Checking for child pids of %d\n' %(rootPid,))
+
+            childPids = Program.getAllChildPidsInTree(rootPid)
+            if childPids:
+                if isDebugEnabled():
+                    logMsg('DEBUG: Found children of %d: %s\n' %(rootPid, str(childPids),))
+                for childPid in childPids:
+                    try:
+                        cmdline = self._getProcCmdline(childPid)
+                        if isDebugEnabled():
+                            logMsg('DEBUG: Checking child pid=%d %s...\n' %(childPid, cmdline['cmdline']))
+                        if cmdline['cmdline'] and not cmdline['cmdline'].startswith('/bin/sh -c') and bool(programConfig.proctitle_re.search(cmdline['cmdline'])):
+                            if isDebugEnabled():
+                                logMsg('DEBUG Matched child!\n')
+                            self.pid = childPid
+                            foundMatchingChild = True
+                            break
+                    except Exception as e:
+                        if isDebugEnabled():
+                            logErr('Error checking child pid=%d: %s\n' %(childPid, str(e),))
+                            traceback.print_exc()
+
+                if foundMatchingChild is True:
+                    while time.time() < successAfter:
+                        time.sleep(pollTime)
+                        if not os.path.exists('/proc/%d' %(self.pid,)):
+                            logMsg('Found child process pid=%d cmdline=%s, but it stopped running. Checking other children...\n' %(self.pid, str(cmdline)))
+                            self.pid = None
+                            foundMatchingChild = False
+                            break
+                    if foundMatchingChild is True:
+                        break
+
+            time.sleep(pollTime)
+        
+        if foundMatchingChild is False:
+            logErr('(%s) - Failed to find program matching proctitle_re. Shell pid is: %d\n' %(programConfig.name, pipe.pid))
+            return ReturnCodes.PROGRAM_FAILED_TO_LAUNCH
 
         try:
             self.setCmdlineFromProc()

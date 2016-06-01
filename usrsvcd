@@ -481,9 +481,15 @@ def callUsrsvc(args, config):
 
 
 if __name__ == '__main__':
+    if '--version' in sys.argv:
+        from usrsvcmod import __version__ as vers
+        sys.stderr.write("usrsvc version %s\n" %(vers,))
+        sys.exit(ReturnCodes.HELP_MESSAGE)
+
     if '--help' in sys.argv:
         printUsage()
         sys.exit(ReturnCodes.HELP_MESSAGE)
+
     if '--readme' in sys.argv:
         from usrsvcmod.client.readme import printReadme
         printReadme(sys.stdout)
