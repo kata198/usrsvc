@@ -448,7 +448,11 @@ class Program(object):
         while time.time() < successAfter:
             pollResult = pipe.poll()
             if pollResult is not None:
-                logErr('(%s) - Parent shell exited with code=%d\n' %(programConfig.name, pollResult))
+                if useShell is True:
+                    whatExited = "shell"
+                else:
+                    whatExited = "process"
+                logErr('(%s) - Parent %s exited with code=%d\n' %(programConfig.name, whatExited, pollResult))
                 return ReturnCodes.PROGRAM_FAILED_TO_LAUNCH
 
             if firstChildIsProcess is True:
@@ -456,6 +460,7 @@ class Program(object):
 
             if isDebugEnabled():
                 logMsg('DEBUG: Checking for child pids of %d\n' %(rootPid,))
+
             childPids = Program.getAllChildPidsInTree(rootPid)
             if childPids:
                 if isDebugEnabled():
