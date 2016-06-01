@@ -1,3 +1,8 @@
+* 1.5.0 - Jun 1 2016
+- Change the way that process start matching works, such that it has much better support for when the process listed as "command" actually launches a child process, which is to be matched by "proctitle_re"
+- Add support for "--version"
+- Remove lock if usrsvc has an error, which prevents a needless up to 30 second delay (if usrsvc hits a bug)
+
 * 1.4.1 - May 30 2016
 - Add "-P" as an alias to "--parallel" for usrsvc application
 - Remove lingering old "usrsvc --help" output in README.md
