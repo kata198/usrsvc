@@ -239,7 +239,7 @@ The "Program" section has the following properties:
 
 * term\_to\_kill\_seconds : Default 8, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
 
-* mail\_alerts - String, if set, when usrsvcd starts/restarts a process, an email alert will go to this address.
+* email\_alerts - String, if set, when usrsvcd starts/restarts a process, an email alert will go to this address.
 
 
 
