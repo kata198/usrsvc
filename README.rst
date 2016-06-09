@@ -284,7 +284,7 @@ NOTE: The following stdout/stderr are opened in "append" mode always.
 
 * inherit_env - Boolean, default True. If True, will inherit the env from "usrsvc" or "usrsvcd". Otherwise, will only use the Env as defined in the Env subsection.
 
-* mail_alerts - String, if set, when usrsvcd starts/restarts a process, an email alert will go to this address.
+* email_alerts - String, if set, when usrsvcd starts/restarts a process, an email alert will go to this address.
 
 
 "Program" Supports the following subsections:

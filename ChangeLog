@@ -1,3 +1,6 @@
+* 1.5.1 - Jun 9 2016
+- Fix typo in docs (mail_alerts -> email_alerts)
+
 * 1.5.0 - Jun 1 2016
 - Change the way that process start matching works, such that it has much better support for when the process listed as "command" actually launches a child process, which is to be matched by "proctitle_re"
 - Add support for "--version"

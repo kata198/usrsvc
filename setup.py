@@ -44,7 +44,7 @@ if __name__ == '__main__':
         sys.stderr.write(str(e)  +  '\n')
 
     setup(name='usrsvc',
-            version='1.5.0',
+            version='1.5.1',
             packages=['usrsvcmod', 'usrsvcmod.Monitoring', 'usrsvcmod.client'],
             scripts=['usrsvc', 'usrsvcd'],
             author='Tim Savannah',
