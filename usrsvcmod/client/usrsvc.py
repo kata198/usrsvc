@@ -129,8 +129,8 @@ class Usrsvc(object):
             logErr('No such program: %s\n' %(programName,))
             return ReturnCodes.PROGRAM_UNDEFINED
 
-        if programConfig.enabled is False and action != 'status':
-            logErr('Program %s is currently disabled in config. Only the "status" action is supported on disabled programs.\n' %(programName,))
+        if programConfig.enabled is False and action not in ('stop', 'status'):
+            logErr('Program %s is currently disabled in config. Only the "stop" and "status" actions are supported on disabled programs.\n' %(programName,))
             return ReturnCodes.PROGRAM_DISABLED
 
         if action == 'start':
