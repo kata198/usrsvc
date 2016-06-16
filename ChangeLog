@@ -1,3 +1,8 @@
+* 1.5.2 - Jun 16 2016
+- Allow "usrsvc stop" on Programs with enabled=0 (the intention is that
+usrsvcd will not manage it). This makes sense to suspend a program running,
+stop it, and resume later.
+
 * 1.5.1 - Jun 9 2016
 - Fix typo in docs (mail_alerts -> email_alerts)
 
