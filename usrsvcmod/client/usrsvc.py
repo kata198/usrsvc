@@ -223,14 +223,7 @@ usrsvc is tool for performing specific actions on services, usrsvcd is the relat
             
         try:
 
-            if '--help' in argv:
-                self.printUsage()
-                return ReturnCodes.HELP_MESSAGE
-            elif '--readme' in argv:
-                from usrsvcmod.client.readme import printReadme
-                printReadme(sys.stdout)
-                return ReturnCodes.HELP_MESSAGE
-            elif len(argv) == 4 and argv[1] in ('start', 'stop', 'restart') and argv[2] == 'all' and (argv[3] == '--parallel' or argv[3] == '-P'):
+            if len(argv) == 4 and argv[1] in ('start', 'stop', 'restart') and argv[2] == 'all' and (argv[3] == '--parallel' or argv[3] == '-P'):
                 parallelAll = True
             elif len(argv) != 3:
                 logErr('Invalid number of arguments.\n')

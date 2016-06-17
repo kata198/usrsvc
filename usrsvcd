@@ -486,11 +486,11 @@ if __name__ == '__main__':
         sys.stderr.write("usrsvc version %s\n" %(vers,))
         sys.exit(ReturnCodes.HELP_MESSAGE)
 
-    if '--help' in sys.argv:
+    elif '--help' in sys.argv:
         printUsage()
         sys.exit(ReturnCodes.HELP_MESSAGE)
 
-    if '--readme' in sys.argv:
+    elif '--readme' in sys.argv:
         from usrsvcmod.client.readme import printReadme
         printReadme(sys.stdout)
         sys.exit(ReturnCodes.HELP_MESSAGE)
