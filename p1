@@ -1,0 +1,173 @@
+diff --git a/README.md b/README.md
+index d8f1637..d62a90b 100644
+--- a/README.md
++++ b/README.md
+@@ -232,6 +232,9 @@ Configuration is "configobj" style, which closely mimics ini-style but supports
+ The following are the sections and their meanings. [Main] must be defined in $HOME/usrsvc.cfg, but otherwise any of the sections can appear in any config file.
+ 
+ 
++Main Config
++-----------
++
+ **[Main]**
+ 
+ The [Main] section must be found in $HOME/usrsvc.cfg, and can contain any of the following properties:
+@@ -248,6 +251,10 @@ The [Main] section must be found in $HOME/usrsvc.cfg, and can contain any of the
+ * sendmail\_path - If defined and not "auto", this should be the path to the "sendmail" application. This is used as the sender program when "email\_alerts" is set on a Program. If not defined or auto, /usr/sbin/sendmail, /usr/bin/sendmail, and every element in PATH will be checked.
+ 
+ 
++Program Config
++--------------
++
++
+ **[Program:myprogram]**
+ 
+ Each "Program" section can be in any config file, and defines a Program that will be managed by usrsvc. Following the colon is the program name (in this case, "myprogram") and must be unique. This will assign the name that will be used to identify the program (e.x. "usrsvc start myprogram")
+@@ -299,17 +306,39 @@ NOTE: The following stdout/stderr are opened in "append" mode always.
+ * inherit\_env - Boolean, default True. If True, will inherit the env from "usrsvc" or "usrsvcd". Otherwise, will only use the Env as defined in the Env subsection.
+ 
+ 
+-"Program" Supports the following subsections:
++Program Subsections
++-------------------
+ 
++Your *Program* config may contain the following subsections, and their properties.
+ 
+-[[Monitor]]
+ 
+-The monitoring section, see below for more info.
++**[[Env]]**
+ 
++A series of key=value items which will be present in the environment prior to starting this Program.
+ 
+-[[Env]]
+ 
+-A series of key=value items which will be present in the environment prior to starting this Program.
++
++**[[Monitor]]**
++
++The Monitor subsection specifies if and how your *Program* will be monitored. Monitoring can determine if a *Program* has stopped running, or exceeded some bounds, and trigger a restart.
++
++Currently, *Monitor* can contain the following properties:
++
++* monitor\_after - Minimum number of seconds that program needs to be running before monitoring will begin. Default 30. 0 disables this feature.
++
++(Activity File Monitoring)
++
++The following two properties deal with "activity file" monitoring, that is ensuring that a file or directory is updated within a specified number of seconds.
++
++* activityfile - File or Directory which must be modified every #activityfile\_limit# seconds, or program will be restarted. Default undefined/empty string disables this.
++
++* activityfile\_limit - If activityfile is defined, this is the number of seconds is the maximum that can go between modifications of the provided #activityfile# before triggering a restart.
++
++(RSS Limit Monitoring)
++
++The following property triggers the "rss limit" monitor. This monitor checks the Resident Set Size (non-shared memory an application is using), and restarts if it exceeds a given threshold.
++
++* rss\_limit - Default 0, if greater than zero, specifies the maximum RSS (resident set size) that a process may use before being restarted. This is the "private" memory (not including shared maps, etc) used by a process.
+ 
+ 
+ *Example Program Config:* 
+@@ -317,45 +346,38 @@ A series of key=value items which will be present in the environment prior to st
+ 
+ 	[Program:myprogram]
+ 
+-	command = /home/myusr/bin/myprogram
++	command = /home/myusr/bin/myprogram.py arg1 arg2
+ 	pidfile = /home/myusr/pids/myprogram.pid
+ 	stdout  = /home/myusr/logs/myprogram.log
+ 	stderr  = stdout
+ 
++
+ 	[[Env]]
+ 
+ 		DB_USER = superdb
+ 		DB_NAME = mydatabase
+ 
+ 
+-**[DefaultSettings:mydefaults]**
+-
+-These define a set of default settings for a Program, and can include default values in subsections as well. Your program can inherit these default settings by setting the "defaults=mydefaults" property, where "mydefaults" is the name of your DefaultSettings.
+-
+-
+-**[[Monitor]]**
+-
+-The Monitor subsection specifies if and how your Program will be monitored. This is to sense if your Program has frozen and needs a restart, the "autorestart" and "autostart" monitoring are handled in the "Program" config.
+-
+-Note, additional Monitoring types will be available in a future release.
+ 
+-Monitor can contain the following properties:
++Inheritable Settings
++--------------------
+ 
+-* monitor\_after - Minimum number of seconds that program needs to be running before monitoring will begin. Default 30. 0 disables this feature.
++You can define default settings in a .cfg file within your *config\_dir* that can be inherited by other programs. Use this to reduce duplication, and change things en masse.
++ 
++Set the *defaults* property of a Program to the name given to a *DefaultsSettings* section to have that Program inherit those defaults.
+ 
+-(Activity File Monitoring)
+-
+-The following two properties deal with "activity file" monitoring, that is ensuring that a file or directory is updated within a specified number of seconds.
++Any properties defined by the Program explicitly will override any defaults inherited.
+ 
+-* activityfile - File or Directory which must be modified every #activityfile\_limit# seconds, or program will be restarted. Default undefined/empty string disables this.
+ 
+-* activityfile\_limit - If activityfile is defined, this is the number of seconds is the maximum that can go between modifications of the provided #activityfile# before triggering a restart.
++*Example DefaultSetings*
+ 
+-(RSS Limit Monitoring)
+ 
+-The following property triggers the "rss limit" monitor. This monitor checks the Resident Set Size (non-shared memory an application is using), and restarts if it exceeds a given threshold.
++	[DefaultSettings:mydefaults]
+ 
+-* rss\_limit - Default 0, if greater than zero, specifies the maximum RSS (resident set size) that a process may use before being restarted. This is the "private" memory (not including shared maps, etc) used by a process.
++				success_seconds = 5
++				restart_delay = 3
++				max_restarts = 3
++				email_alerts = nobody@example.com
+ 
+ 
+ 
+diff --git a/usrsvcd b/usrsvcd
+index 433b9ab..8ab6908 100755
+--- a/usrsvcd
++++ b/usrsvcd
+@@ -291,7 +291,10 @@ def handleArg(arg):
+         return ReturnCodes.INVALID_ACTION
+         
+ 
+-
++# The number of seconds that the Monitoring thread will sleep before monitoring begins.
++#   This gives usrsvcd a chance to actually start the applications and for them to run
++#   instead of Monitoring going crazy on startup.
++MONITORING_STAGGER_SECONDS = 8
+ 
+ def doMonitoring():
+     '''
+@@ -307,7 +310,7 @@ def doMonitoring():
+ 
+     # Wait a bit at first for us to roll through the apps
+ #    time.sleep(8)
+-    for i in range(8):
++    for i in range(MONITORING_STAGGER_SECONDS):
+         time.sleep(1)
+         if keepGoing is False:
+             return
+@@ -434,13 +437,16 @@ def sendEmail(mailData):
+     return True
+     
+ 
++# Number of seconds between start of mail thread before any mail is sent.
++MAIL_STAGGER_SECONDS = 3
++
+ def doMail():
+     global config
+     global keepGoing
+     global mailQueue
+ 
+     # Wait a little before doing anything
+-    for i in range(3):
++    for i in range(MAIL_STAGGER_SECONDS):
+         if keepGoing is False:
+             return
+         time.sleep(1)
