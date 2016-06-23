@@ -76,6 +76,56 @@ Usrsvc and usrsvcd are very verbose with logging, and try to be as specific as p
 When the "email_alerts" property is set on a Program or a Program Group, an email will be sent when Monitoring triggers a restart, or the program is found to not be running and is started by usrsvcd.
 
 
+
+Process Identification
+----------------------
+
+The primary method for managing processes are through pidfiles. Every program is required to have a pidfile defined in its configuration.
+
+
+When autopid = True (default), usrsvc will manage the pidfile. If you set autopid = False, your application will need to generate its own pidfile (not recommended).
+
+The process identified by the pid file will be checked against *proctitle_re*, and if they don't match, the pid file will be considered stale and removed.
+
+
+**Starting Processes**
+
+When usrsvc starts a process, it will run for *success_seconds*, in which time it will try to match a process (based on *proctitle_re*), and ensure that process is still running at the end of that period.
+
+
+When useshell = True, usrsvc will fork and exec a bash process (provided as *command*) which should launch your process, or when useshell = False, it will launch the given *command* directly.
+
+That process, and its children, and all of their children, etc, will be checked against *proctitle_re* for a match.
+
+If your process takes a long time to start, you will likely need to increase *success_seconds* from its default value.
+
+When the process is matched, and the period ends, usrsvc will write the pidfile (autopid = True) and return success, otherwise it will return failure.
+
+
+**Scanning for Processes**
+
+When *scan_for_process* is True (default), in the absense of a pid file, or when a pid file is declared stale (does not match *proctitle_re*),
+ usrsvc will scan all processes running as the current user for one that matches *proctitle_re*.
+
+
+If a match is found, it will update the pidfile with the matched program.
+
+If at all possible, you should ensure that you have unique proctitles for your applications, such that you can safely have *scan_for_process* = True. 
+
+This provides a fallback in the case that a service is started via some other means, or the pid file is removed or otherwise corrupted.
+
+In addition to working as a fallback, this allows you to attach usrsvc to any existing running service, *without the need to restart that service*.
+You can attach and detach usrsvc to any process at-will.
+
+After a process is found via scan, its pid will be written to the pidfile, which is the primary (and most efficient) means of associating a process to a name.
+
+
+Many services have the means to set the proctitle to something unique, via setproctitle system call, python library "setproctitle", etc.
+
+It is recommended whenever possible to have *scan_for_process* be True, to add the extra resiliency and managibility.
+
+
+
 usrsvc (tool)
 -------------
 
@@ -216,54 +266,6 @@ After your changes have been validated, usrsvcd will apply the updates following
 
 There is no need to restart usrsvcd to apply a configuration change.
 
-
-
-Process Identification
-----------------------
-
-The primary method for managing processes are through pidfiles. Every program is required to have a pidfile defined in its configuration.
-
-
-When autopid = True (default), usrsvc will manage the pidfile. If you set autopid = False, your application will need to generate its own pidfile (not recommended).
-
-The process identified by the pid file will be checked against *proctitle_re*, and if they don't match, the pid file will be considered stale and removed.
-
-
-**Starting Processes**
-
-When usrsvc starts a process, it will run for *success_seconds*, in which time it will try to match a process (based on *proctitle_re*), and ensure that process is still running at the end of that period.
-
-
-When useshell = True, usrsvc will fork and exec a bash process (provided as *command*) which should launch your process, or when useshell = False, it will launch the given *command* directly.
-
-That process, and its children, and all of their children, etc, will be checked against *proctitle_re* for a match.
-
-If your process takes a long time to start, you will likely need to increase *success_seconds* from its default value.
-
-When the process is matched, and the period ends, usrsvc will write the pidfile (autopid = True) and return success, otherwise it will return failure.
-
-
-**Scanning for Processes**
-
-When *scan_for_process* is True (default), in the absense of a pid file, or when a pid file is declared stale (does not match *proctitle_re*),
- usrsvc will scan all processes running as the current user for one that matches *proctitle_re*.
-
-
-If a match is found, it will update the pidfile with the matched program.
-
-If at all possible, you should ensure that you have unique proctitles for your applications, such that you can safely have *scan_for_process* = True. 
-
-This provides a fallback in the case that a service is started via some other means, or the pid file is removed or otherwise corrupted.
-
-In addition to working as a fallback, this allows you to attach usrsvc to any existing running service, *without the need to restart that service*.
-You can attach and detach usrsvc to any process at-will.
-
-After a process is found via scan, its pid will be written to the pidfile, which is the primary (and most efficient) means of associating a process to a name.
-
-
-Many services have the means to set the proctitle to something unique, via setproctitle system call, python library "setproctitle", etc.
-
-It is recommended whenever possible to have *scan_for_process* be True, to add the extra resiliency and managibility.
 
 
 Configuration

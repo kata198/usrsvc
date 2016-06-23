@@ -7,6 +7,7 @@
 - Documentation - Add a paragraph about how usrsvc/usrsvcd works with "scan_for_process", and some notes on proctitles
 - Documentation - Have "usrsvc --readme" use README.md (markdown) - which is MUCH MORE READABLE than README.rst (resucktured text)
 - Help Messages - Cleanup "--help" messages, making them neater and cleaner.
+- Documentation - Move "Process Identification" section below Design, for better grouping.
 
 
 * 1.5.3 - Jun 17 2016
