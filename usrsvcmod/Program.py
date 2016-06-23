@@ -495,7 +495,7 @@ class Program(object):
             time.sleep(pollTime)
         
         if foundMatchingChild is False:
-            logErr('(%s) - Failed to find program matching proctitle_re. Shell pid is: %d\n' %(programConfig.name, pipe.pid))
+            logErr('(%s) - Failed to find program matching proctitle_re within success_seconds=%.1f seconds. Shell pid is: %d\n' %(programConfig.name, programConfig.success_seconds, pipe.pid))
             return ReturnCodes.PROGRAM_FAILED_TO_LAUNCH
 
         try:
