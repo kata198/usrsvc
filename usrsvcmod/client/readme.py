@@ -28,7 +28,7 @@ def printReadme(outObj=None):
     if outObj is None:
         outObj = sys.stdout
     
-    sys.stdout.write(README_CONTENTS)
+    sys.stdout.write(README_CONTENTS.replace('\\_', '_'))
     sys.stdout.flush()
 
 
