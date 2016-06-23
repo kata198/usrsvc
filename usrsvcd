@@ -54,10 +54,12 @@ from NamedAtomicLock import NamedAtomicLock
 
 def printUsage():
     sys.stderr.write('''Usage: usrsvcd (Optional: [action])
-Optional daemon portion of usrsvc which actively monitors processes and provides the autostart/autorestart, and other optional features.
+Usrsvcd is the daemon portion of usrsvc which actively monitors processes,
+  provides autostart, autorestart, and other advanced features.
+
+If "action" is omitted, it will assume the default, "start".
 
   Actions:
-    Running with no arguments starts the usrsvcd daemon. You can also provide one of several "action" arguments which affect the running instance of usrsvcd.
 
       checkconfig            -   Try to parse config files and validate correctness, without affecting the running usrsvcd instance. Returns non-zero on failure.
       reread                 -   Sends SIGUSR1 to the running usrsvcd process, which will cause it to reread configs and immediately apply the changes to the running instance.
@@ -65,6 +67,7 @@ Optional daemon portion of usrsvc which actively monitors processes and provides
       restart                -   Restarts the usrsvcd daemon cleanly
       status                 -   Checks if usrsvcd is running. Returns non-zero on failure
       stop                   -   Stops running instance of usrsvcd
+      start                  -   Starts usrsvcd (Default action)
 
 
 See https://github.com/kata198/usrsvc/blob/master/README.md for more documentation

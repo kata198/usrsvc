@@ -15,8 +15,6 @@ import sys
 from setuptools import setup
 
 
-
-
 if __name__ == '__main__':
 
     dirName = os.path.dirname(__file__)
@@ -24,6 +22,8 @@ if __name__ == '__main__':
         os.chdir(dirName)
 
     summary = 'A user service manager for running/managing/monitoring daemons and services'
+
+    # Use README.rst for the long_description ( for pypi )
     try:
         with open('README.rst', 'rt') as f:
             long_description = f.read()
@@ -31,9 +31,18 @@ if __name__ == '__main__':
         sys.stderr.write('Error reading from README.rst: %s\n' %(str(e),))
         long_description = summary
 
+    # Use README.md (actually looks sane uninterpreted) as the --readme option.
+    try:
+        with open('README.md', 'rt') as f:
+            readme_description = f.read()
+    except Exception as e:
+        sys.stderr.write('Error reading from README.rst: %s\n' %(str(e),))
+        readme_description = summary
+
+
     try:
         with open('usrsvcmod/client/_readme_contents.py', 'wt') as f:
-            f.write('README_CONTENTS = """%s"""\n' %(long_description,)  )
+            f.write('README_CONTENTS = """%s"""\n' %(readme_description,)  )
             f.flush()
             try:
                 os.fsync(f)

@@ -189,9 +189,10 @@ class Usrsvc(object):
     def printUsage(cls):
         sys.stderr.write('''Usage: usrsvc (Options) [start/stop/restart/status] [program name]
  Performs the requested action on the given program name.
- "all" can be used for start/stop/restart in place of "program name"
+
+ "all" can be used in place of "program name" to perform the given task on all configured programs. (see Parallel below)
  
-usrsvc is tool for performing specific actions on services, usrsvcd is the related daemon for autorestart/monitoring, etc.
+usrsvc is the tool for performing specific actions on services, usrsvcd is the related daemon for autorestart/monitoring, etc.
 
   Options:
   --------
