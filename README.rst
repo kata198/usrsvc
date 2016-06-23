@@ -22,9 +22,11 @@ In the supervisord world, if you need to update the running supervisord, you mus
 All services started by *usrsvc* or *usrsvcd* have "init" as the parent (or systemd under some system configurations).
 
 
+
 **Capturing/Managing existing processes**
 
 Because no parent-child relationship is required or even used, usrsvc is able to manage already-running processes. There are several configurable means for usrsvc to identify and match the services you define to running processes.
+
 
 
 **Modular / Resilient**
@@ -41,10 +43,12 @@ If the new configuration passes validation, the changes will be applied to the n
 Several commands / log entries give a JSON output so they can be parsed and used by an external application.
 
 
+
 **Process Monitoring**
 
 
 *usrsvcd* provides the ability to monitor the processes it manages beyond just whether it is stopped/started. These are configurable, optional, and defined per-service (see "Monitoring" section below.)
+
 
 
 **No root / Isolation**
@@ -54,17 +58,72 @@ usrsvc is designed to run at the service account level, per best-practices of se
 Each account has its own independent configurations, and runs its own instance of *usrsvcd*, providing further isolation between application groups.
 
 
+
 **Simple Configuration**
 
 All of the configuration is through simple ini-style config files, and supports defining and inheriting default settings to prevent duplication across programs.
+
+
 
 **Verbose**
 
 Usrsvc and usrsvcd are very verbose with logging, and try to be as specific as possible. All logs contain timestamps and meaningful error codes/descriptions, to simplify and even make possible evaluation of issues with your services.
 
+
+
 **Email Alerts**
 
 When the "email_alerts" property is set on a Program or a Program Group, an email will be sent when Monitoring triggers a restart, or the program is found to not be running and is started by usrsvcd.
+
+
+
+Process Identification
+----------------------
+
+The primary method for managing processes are through pidfiles. Every program is required to have a pidfile defined in its configuration.
+
+
+When autopid = True (default), usrsvc will manage the pidfile. If you set autopid = False, your application will need to generate its own pidfile (not recommended).
+
+The process identified by the pid file will be checked against *proctitle_re*, and if they don't match, the pid file will be considered stale and removed.
+
+
+**Starting Processes**
+
+When usrsvc starts a process, it will run for *success_seconds*, in which time it will try to match a process (based on *proctitle_re*), and ensure that process is still running at the end of that period.
+
+
+When useshell = True, usrsvc will fork and exec a bash process (provided as *command*) which should launch your process, or when useshell = False, it will launch the given *command* directly.
+
+That process, and its children, and all of their children, etc, will be checked against *proctitle_re* for a match.
+
+If your process takes a long time to start, you will likely need to increase *success_seconds* from its default value.
+
+When the process is matched, and the period ends, usrsvc will write the pidfile (autopid = True) and return success, otherwise it will return failure.
+
+
+**Scanning for Processes**
+
+When *scan_for_process* is True (default), in the absense of a pid file, or when a pid file is declared stale (does not match *proctitle_re*),
+ usrsvc will scan all processes running as the current user for one that matches *proctitle_re*.
+
+
+If a match is found, it will update the pidfile with the matched program.
+
+If at all possible, you should ensure that you have unique proctitles for your applications, such that you can safely have *scan_for_process* = True. 
+
+This provides a fallback in the case that a service is started via some other means, or the pid file is removed or otherwise corrupted.
+
+In addition to working as a fallback, this allows you to attach usrsvc to any existing running service, *without the need to restart that service*.
+You can attach and detach usrsvc to any process at-will.
+
+After a process is found via scan, its pid will be written to the pidfile, which is the primary (and most efficient) means of associating a process to a name.
+
+
+Many services have the means to set the proctitle to something unique, via setproctitle system call, python library "setproctitle", etc.
+
+It is recommended whenever possible to have *scan_for_process* be True, to add the extra resiliency and managibility.
+
 
 
 usrsvc (tool)
@@ -73,14 +132,15 @@ usrsvc (tool)
 
 The "usrsvc" tool handles the basic operations of starting/stopping/restarting/status of a service. You can use this with or without *usrsvcd* running to manage services.
 
+
 	Usage: usrsvc (Options) [start/stop/restart/status] [program name]
 
 		Performs the requested action on the given program name.
 
-		"all" can be used for start/stop/restart in place of "program name"
+		"all" can be used in place of "program name" to perform the given task on all configured programs. (see Parallel below)
 
 	 
-	usrsvc is tool for performing specific actions on services, usrsvcd is the related daemon for autorestart/monitoring, etc.
+	usrsvc is the tool for performing specific actions on services, usrsvcd is the related daemon for autorestart/monitoring, etc.
 
 
 	Options:
@@ -118,6 +178,7 @@ The tool will output some basic information about what happened, and give a mean
 
 Usrsvc will be as verbose as possible in identifying why a program failed to start and stay running, to ease debugging.
 
+
 **Example Usage**
 
 start:
@@ -150,19 +211,25 @@ stop:
 	[Tue Mar  8 22:15:37 2016] - MagicLooper terminated
 
 
+
 usrsvcd (daemon)
 ----------------
 
-The *usrsvcd* daemon handles the autostart, autorestart, and monitoring of the configured services. It is optional, and not required to use usrsvc, but required for advanced features.
+The *usrsvcd* daemon handles the autostart, autorestart, and monitoring of the configured services. It is optional, but required for advanced features.
+
 
 	Usage: usrsvcd (Optional: [action])
 
-	Optional daemon portion of usrsvc which actively monitors processes and provides the autostart/autorestart, and other optional features.
+
+	Usrsvcd is the daemon portion of usrsvc which actively monitors processes,
+
+	  provides autostart, autorestart, and other advanced features.
+
+
+	If "action" is omitted, it will assume the default, "start".
 
 
 		Actions:
-
-			Running with no arguments starts the usrsvcd daemon. You can also provide one of several "action" arguments which affect the running instance of usrsvcd.
 
 
 			checkconfig            -   Try to parse config files and validate correctness, without affecting the running usrsvcd instance. Returns non-zero on failure.
@@ -181,31 +248,24 @@ The *usrsvcd* daemon handles the autostart, autorestart, and monitoring of the c
 	Uses main config file in $HOME/usrsvc.cfg
 
 
-
-The *usrsvcd* process when started will pick up the state of any configured services (whether they are running, what their pid is, etc), it does not need to start/restart the processes to manage them.
-
-**Reread config live**
-
-If you want to add/remove/change a service or a service's properties, you can do so by updating the configuration files, and then optionally running "usrsvcd checkconfig" (to validate config and give you errors on stderr), followed by "usrsvcd reread".
-
-If there are errors in the configs, they will be logged and the previous configuration will be kept. Otherwise, after the current operation set is completed, *usrsvcd* will update all its internal references to the new config, and continue with them.
-
-There is no need to restart usrsvcd or any of its services to apply a config change in this regard.
+The *usrsvcd* process will pick up the state of any configured services (whether they are running, what their pid is, etc) when it starts. Unlike other managers, it does not need to restart the program to begin managing it.
 
 
-Process Identification
-----------------------
 
-Processes are managed through pidfiles. Every program has a required pidfile field in its configuration.
+**Updating Configuration**
 
-By default (autopid=True), a pidfile is generated by usrsvc after starting your service. If you set autopid to False, you will need to generate the pidfile.
-
-The process id found within the pidfile has its proctitle validated, to ensure it is the expected application.
-
-By default, a regular expression is generated from the command given to match the proctitle. If your application changes its proctitle, you will have to defined *proctitle_re* with a matching expression.
+With usrsvcd, you can add or remove a service, or change the properties of an existing service, without disruption of any of the applications.
 
 
-If a pidfile is not found, or does not match, by default (when scan_for_process is True), all running processes by the same user will be scanned for one with a proctitle match. If a match is found, the process has been identified and a pidfile will be generated.
+Simply make the changes to the configuration, and run *usrsvcd checkconfig* to validate against any configuration errors. If there are errors, you will be alerted to what they are, and *usrsvcd* will continue to operate off the last good configuration.
+
+When you are satisfied and have validated your changes, run *usrsvcd reread* to tell usrsvcd to update its internal copy of your configuration. Usrsvcd will perform a check prior to loading the new config, and will alert you if there is an error (and retain the last good config).
+
+
+After your changes have been validated, usrsvcd will apply the updates following the completion of its current operation set. This makes it safe to update at any time, without worry of disruption to applications.
+
+There is no need to restart usrsvcd to apply a configuration change.
+
 
 
 Configuration
@@ -289,9 +349,11 @@ NOTE: The following stdout/stderr are opened in "append" mode always.
 
 "Program" Supports the following subsections:
 
+
 [[Monitor]]
 
 The monitoring section, see below for more info.
+
 
 [[Env]]
 
@@ -322,14 +384,17 @@ A series of key=value items which will be present in the environment prior to st
 
 
 
+
 **[DefaultSettings:mydefaults]**
 
 These define a set of default settings for a Program, and can include default values in subsections as well. Your program can inherit these default settings by setting the "defaults=mydefaults" property, where "mydefaults" is the name of your DefaultSettings.
 
 
+
 **[[Monitor]]**
 
 The Monitor subsection specifies if and how your Program will be monitored. This is to sense if your Program has frozen and needs a restart, the "autorestart" and "autostart" monitoring are handled in the "Program" config.
+
 
 Note, additional Monitoring types will be available in a future release.
 
@@ -355,15 +420,21 @@ The following property triggers the "rss limit" monitor. This monitor checks the
 
 * rss_limit - Default 0, if greater than zero, specifies the maximum RSS (resident set size) that a process may use before being restarted. This is the "private" memory (not including shared maps, etc) used by a process.
 
+
+
 Examples
 --------
 
 An example configuration can be found in the "examples" directory ( https://github.com/kata198/usrsvc/tree/master/examples ). The "usrsvc.cfg" is the main configuration file (to be located in $HOME/usrsvc.cfg), and the "cfg" directory is intended to be "/home/myusr/usrsvc.d/cfg" (per config_dir value in usrsvc.cfg
 
+
+
 Contact Me
 ----------
 
 You may reach me for support, questions, feature requests, or just to let me know you're using it! Use the email kata198 at gmail.
+
+
 
 Changes
 -------

@@ -1,3 +1,15 @@
+* 1.5.4 - Jun 23 2016
+- When we fail to match a child with proctitle_re, include "within success_seconds=X seconds" within the error message.
+ The intent is to direct folks to looking into if maybe they need to increase that value from the default, for example if it takes 5 seconds to start their application,
+ or if the application changes its proctitle after so many seconds.
+- Documentation - Improve spacing, word use, etc to make things more clear
+- Documentation - Add a paragraph about how usrsvc starts a process
+- Documentation - Add a paragraph about how usrsvc/usrsvcd works with "scan_for_process", and some notes on proctitles
+- Documentation - Have "usrsvc --readme" use README.md (markdown) - which is MUCH MORE READABLE than README.rst (resucktured text)
+- Help Messages - Cleanup "--help" messages, making them neater and cleaner.
+- Documentation - Move "Process Identification" section below Design, for better grouping.
+
+
 * 1.5.3 - Jun 17 2016
 - Allow 'usrsvc --help' and 'usrsvc --readme' without ~/usrsvc.cfg (as
 intended)

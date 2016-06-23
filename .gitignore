@@ -6,3 +6,4 @@ dist/
 build/
 *.egg-info/
 usrsvcmod/client/_readme_contents.py
+myenv*/
