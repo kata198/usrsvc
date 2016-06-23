@@ -1,4 +1,4 @@
-* 1.5.4 - Jun 23 2016
+* 1.5.5 - Jun 23 2016
 - When we fail to match a child with proctitle_re, include "within success_seconds=X seconds" within the error message.
  The intent is to direct folks to looking into if maybe they need to increase that value from the default, for example if it takes 5 seconds to start their application,
  or if the application changes its proctitle after so many seconds.
@@ -8,6 +8,7 @@
 - Documentation - Have "usrsvc --readme" use README.md (markdown) - which is MUCH MORE READABLE than README.rst (resucktured text)
 - Help Messages - Cleanup "--help" messages, making them neater and cleaner.
 - Documentation - Move "Process Identification" section below Design, for better grouping.
+- Help Messages - Cleanup --readme output to remove escapes
 
 
 * 1.5.3 - Jun 17 2016
