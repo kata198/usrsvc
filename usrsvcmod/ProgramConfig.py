@@ -63,7 +63,7 @@ class ProgramConfig(object):
                 * autorestart - Default True, boolean value if program should be restarted if it stopped while "usrsvcd" is running
                 * maxrestarts - Default 0, integer on the max number of times usrsvcd will try to automatically restart the application by "usrsvcd". If it is seen running again naturally, this counter will reset. 0 means unlimited restarts.
                 * restart_delay - Default 0, integer on the miminum number of seconds between a failing "start" and the next "restart" attmept by "usrsvcd". 
-                * success_seconds - Default 2, Float on the number of seconds the application must be running for "usrsvc" to consider it successfully started.
+                * success_seconds - Default 2, Float, The number of seconds usrsvc will wait before considering a program successfully started. The created process must both match and still be running at the end of this period to be marked successful.
                 * term_to_kill_seconds : Default 8, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
 
 

@@ -232,6 +232,9 @@ Configuration is "configobj" style, which closely mimics ini-style but supports 
 The following are the sections and their meanings. [Main] must be defined in $HOME/usrsvc.cfg, but otherwise any of the sections can appear in any config file.
 
 
+Main Config
+-----------
+
 **[Main]**
 
 The [Main] section must be found in $HOME/usrsvc.cfg, and can contain any of the following properties:
@@ -246,6 +249,10 @@ The [Main] section must be found in $HOME/usrsvc.cfg, and can contain any of the
 * usrsvcd\_stderr - If defined, usrsvcd will log stderr to this file instead of the default stderr (likely a terminal). Use the value "stdout" to log stderr to the same location as stdout, otherwise must be an absolute path.
 
 * sendmail\_path - If defined and not "auto", this should be the path to the "sendmail" application. This is used as the sender program when "email\_alerts" is set on a Program. If not defined or auto, /usr/sbin/sendmail, /usr/bin/sendmail, and every element in PATH will be checked.
+
+
+Program Config
+--------------
 
 
 **[Program:myprogram]**
@@ -280,7 +287,7 @@ The "Program" section has the following properties:
 
 * restart\_delay - Default 0, integer on the miminum number of seconds between a failing "start" and the next "restart" attmept by "usrsvcd". 
 
-* success\_seconds - Default 2, Float on the number of seconds the application must be running for "usrsvc" to consider it successfully started.
+* success\_seconds - Default 2, Float, The number of seconds usrsvc will wait before considering a program successfully started. The created process must both match and still be running at the end of this period to be marked successful.
 
 * term\_to\_kill\_seconds : Default 8, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
 
@@ -299,47 +306,23 @@ NOTE: The following stdout/stderr are opened in "append" mode always.
 * inherit\_env - Boolean, default True. If True, will inherit the env from "usrsvc" or "usrsvcd". Otherwise, will only use the Env as defined in the Env subsection.
 
 
-"Program" Supports the following subsections:
+Program Subsections
+-------------------
+
+Your *Program* config may contain the following subsections, and their properties.
 
 
-[[Monitor]]
-
-The monitoring section, see below for more info.
-
-
-[[Env]]
+**[[Env]]**
 
 A series of key=value items which will be present in the environment prior to starting this Program.
 
 
-*Example Program Config:* 
-
-
-	[Program:myprogram]
-
-	command = /home/myusr/bin/myprogram
-	pidfile = /home/myusr/pids/myprogram.pid
-	stdout  = /home/myusr/logs/myprogram.log
-	stderr  = stdout
-
-	[[Env]]
-
-		DB_USER = superdb
-		DB_NAME = mydatabase
-
-
-**[DefaultSettings:mydefaults]**
-
-These define a set of default settings for a Program, and can include default values in subsections as well. Your program can inherit these default settings by setting the "defaults=mydefaults" property, where "mydefaults" is the name of your DefaultSettings.
-
 
 **[[Monitor]]**
 
-The Monitor subsection specifies if and how your Program will be monitored. This is to sense if your Program has frozen and needs a restart, the "autorestart" and "autostart" monitoring are handled in the "Program" config.
+The Monitor subsection specifies if and how your *Program* will be monitored. Monitoring can determine if a *Program* has stopped running, or exceeded some bounds, and trigger a restart.
 
-Note, additional Monitoring types will be available in a future release.
-
-Monitor can contain the following properties:
+Currently, *Monitor* can contain the following properties:
 
 * monitor\_after - Minimum number of seconds that program needs to be running before monitoring will begin. Default 30. 0 disables this feature.
 
@@ -356,6 +339,45 @@ The following two properties deal with "activity file" monitoring, that is ensur
 The following property triggers the "rss limit" monitor. This monitor checks the Resident Set Size (non-shared memory an application is using), and restarts if it exceeds a given threshold.
 
 * rss\_limit - Default 0, if greater than zero, specifies the maximum RSS (resident set size) that a process may use before being restarted. This is the "private" memory (not including shared maps, etc) used by a process.
+
+
+*Example Program Config:* 
+
+
+	[Program:myprogram]
+
+	command = /home/myusr/bin/myprogram.py arg1 arg2
+	pidfile = /home/myusr/pids/myprogram.pid
+	stdout  = /home/myusr/logs/myprogram.log
+	stderr  = stdout
+
+
+	[[Env]]
+
+		DB_USER = superdb
+		DB_NAME = mydatabase
+
+
+
+Inheritable Settings
+--------------------
+
+You can define default settings in a .cfg file within your *config\_dir* that can be inherited by other programs. Use this to reduce duplication, and change things en masse.
+ 
+Set the *defaults* property of a Program to the name given to a *DefaultsSettings* section to have that Program inherit those defaults.
+
+Any properties defined by the Program explicitly will override any defaults inherited.
+
+
+*Example DefaultSetings*
+
+
+	[DefaultSettings:mydefaults]
+
+				success_seconds = 5
+				restart_delay = 3
+				max_restarts = 3
+				email_alerts = nobody@example.com
 
 
 

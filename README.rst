@@ -280,6 +280,9 @@ Configuration is "configobj" style, which closely mimics ini-style but supports 
 The following are the sections and their meanings. [Main] must be defined in $HOME/usrsvc.cfg, but otherwise any of the sections can appear in any config file.
 
 
+Main Config
+-----------
+
 **[Main]**
 
 The [Main] section must be found in $HOME/usrsvc.cfg, and can contain any of the following properties:
@@ -294,6 +297,10 @@ The [Main] section must be found in $HOME/usrsvc.cfg, and can contain any of the
 * usrsvcd_stderr - If defined, usrsvcd will log stderr to this file instead of the default stderr (likely a terminal). Use the value "stdout" to log stderr to the same location as stdout, otherwise must be an absolute path.
 
 * sendmail_path - If defined and not "auto", this should be the path to the "sendmail" application. This is used as the sender program when "email_alerts" is set on a Program. If not defined or auto, /usr/sbin/sendmail, /usr/bin/sendmail, and every element in PATH will be checked.
+
+
+Program Config
+--------------
 
 
 **[Program:myprogram]**
@@ -328,7 +335,7 @@ The "Program" section has the following properties:
 
 * restart_delay - Default 0, integer on the miminum number of seconds between a failing "start" and the next "restart" attmept by "usrsvcd". 
 
-* success_seconds - Default 2, Float on the number of seconds the application must be running for "usrsvc" to consider it successfully started.
+* success_seconds - Default 2, Float, The number of seconds usrsvc will wait before considering a program successfully started. The created process must both match and still be running at the end of this period to be marked successful.
 
 * term_to_kill_seconds : Default 8, Float on the number of seconds the application is given between SIGTERM and SIGKILL.
 
@@ -347,17 +354,39 @@ NOTE: The following stdout/stderr are opened in "append" mode always.
 * email_alerts - String, if set, when usrsvcd starts/restarts a process, an email alert will go to this address.
 
 
-"Program" Supports the following subsections:
+Program Subsections
+-------------------
+
+Your *Program* config may contain the following subsections, and their properties.
 
 
-[[Monitor]]
-
-The monitoring section, see below for more info.
-
-
-[[Env]]
+**[[Env]]**
 
 A series of key=value items which will be present in the environment prior to starting this Program.
+
+
+
+**[[Monitor]]**
+
+The Monitor subsection specifies if and how your *Program* will be monitored. Monitoring can determine if a *Program* has stopped running, or exceeded some bounds, and trigger a restart.
+
+Currently, *Monitor* can contain the following properties:
+
+* monitor_after - Minimum number of seconds that program needs to be running before monitoring will begin. Default 30. 0 disables this feature.
+
+(Activity File Monitoring)
+
+The following two properties deal with "activity file" monitoring, that is ensuring that a file or directory is updated within a specified number of seconds.
+
+* activityfile - File or Directory which must be modified every #activityfile_limit# seconds, or program will be restarted. Default undefined/empty string disables this.
+
+* activityfile_limit - If activityfile is defined, this is the number of seconds is the maximum that can go between modifications of the provided #activityfile# before triggering a restart.
+
+(RSS Limit Monitoring)
+
+The following property triggers the "rss limit" monitor. This monitor checks the Resident Set Size (non-shared memory an application is using), and restarts if it exceeds a given threshold.
+
+* rss_limit - Default 0, if greater than zero, specifies the maximum RSS (resident set size) that a process may use before being restarted. This is the "private" memory (not including shared maps, etc) used by a process.
 
 
 *Example Program Config:* 
@@ -366,7 +395,7 @@ A series of key=value items which will be present in the environment prior to st
 	[Program:myprogram]
 
 
-	command = /home/myusr/bin/myprogram
+	command = /home/myusr/bin/myprogram.py arg1 arg2
 
 	pidfile = /home/myusr/pids/myprogram.pid
 
@@ -384,41 +413,29 @@ A series of key=value items which will be present in the environment prior to st
 
 
 
+Inheritable Settings
+--------------------
 
-**[DefaultSettings:mydefaults]**
+You can define default settings in a .cfg file within your *config_dir* that can be inherited by other programs. Use this to reduce duplication, and change things en masse.
+ 
+Set the *defaults* property of a Program to the name given to a *DefaultsSettings* section to have that Program inherit those defaults.
 
-These define a set of default settings for a Program, and can include default values in subsections as well. Your program can inherit these default settings by setting the "defaults=mydefaults" property, where "mydefaults" is the name of your DefaultSettings.
-
-
-
-**[[Monitor]]**
-
-The Monitor subsection specifies if and how your Program will be monitored. This is to sense if your Program has frozen and needs a restart, the "autorestart" and "autostart" monitoring are handled in the "Program" config.
+Any properties defined by the Program explicitly will override any defaults inherited.
 
 
-Note, additional Monitoring types will be available in a future release.
-
-Monitor can contain the following properties:
-
-* monitor_after - Minimum number of seconds that program needs to be running before monitoring will begin. Default 30. 0 disables this feature.
+*Example DefaultSetings*
 
 
-(Activity File Monitoring)
+	[DefaultSettings:mydefaults]
 
-The following two properties deal with "activity file" monitoring, that is ensuring that a file or directory is updated within a specified number of seconds.
+				success_seconds = 5
 
+				restart_delay = 3
 
-* activityfile - File or Directory which must be modified every #activityfile_limit# seconds, or program will be restarted. Default undefined/empty string disables this.
+				max_restarts = 3
 
-* activityfile_limit - If activityfile is defined, this is the number of seconds is the maximum that can go between modifications of the provided #activityfile# before triggering a restart.
+				email_alerts = nobody@example.com
 
-
-(RSS Limit Monitoring)
-
-
-The following property triggers the "rss limit" monitor. This monitor checks the Resident Set Size (non-shared memory an application is using), and restarts if it exceeds a given threshold.
-
-* rss_limit - Default 0, if greater than zero, specifies the maximum RSS (resident set size) that a process may use before being restarted. This is the "private" memory (not including shared maps, etc) used by a process.
 
 
 
@@ -440,4 +457,3 @@ Changes
 -------
 
 The Changelog can be found at: https://raw.githubusercontent.com/kata198/usrsvc/master/ChangeLog
-
