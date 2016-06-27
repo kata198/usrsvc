@@ -291,7 +291,10 @@ def handleArg(arg):
         return ReturnCodes.INVALID_ACTION
         
 
-
+# The number of seconds that the Monitoring thread will sleep before monitoring begins.
+#   This gives usrsvcd a chance to actually start the applications and for them to run
+#   instead of Monitoring going crazy on startup.
+MONITORING_STAGGER_SECONDS = 8
 
 def doMonitoring():
     '''
@@ -307,7 +310,7 @@ def doMonitoring():
 
     # Wait a bit at first for us to roll through the apps
 #    time.sleep(8)
-    for i in range(8):
+    for i in range(MONITORING_STAGGER_SECONDS):
         time.sleep(1)
         if keepGoing is False:
             return
@@ -434,13 +437,16 @@ def sendEmail(mailData):
     return True
     
 
+# Number of seconds between start of mail thread before any mail is sent.
+MAIL_STAGGER_SECONDS = 3
+
 def doMail():
     global config
     global keepGoing
     global mailQueue
 
     # Wait a little before doing anything
-    for i in range(3):
+    for i in range(MAIL_STAGGER_SECONDS):
         if keepGoing is False:
             return
         time.sleep(1)

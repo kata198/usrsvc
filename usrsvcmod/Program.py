@@ -203,8 +203,6 @@ class Program(object):
             newChildPids2 = []
             for newChildPid in newChildPids:
                 childChildPids = Program.getChildPids(newChildPid)
-                if isDebugEnabled() and childChildPids:
-                    logMsg('DEBUG: Add child-of-child %d pids: %s\n' %(newChildPid, str(childChildPids)))
                 newChildPids2 += childChildPids
                 childPids += childChildPids
             newChildPids = newChildPids2
@@ -421,7 +419,7 @@ class Program(object):
                 # Program died, we will catch below.
                 pass
             if cmdline is not None and not cmdline['cmdline'].startswith('/bin/sh -c'):
-                logMsg('%s - useshell is set to True, but program does not require a shell parent. Resetting useShell to False.\n' %(programConfig.name,))
+                logMsg('(%s) - useshell is set to True, but program does not require a shell parent. Resetting useShell to False.\n' %(programConfig.name,))
                 programConfig.use_shell = useShell = False
                 useShell = False
 
@@ -439,53 +437,52 @@ class Program(object):
                 pass
             if cmdline is not None and bool(programConfig.proctitle_re.search(cmdline['cmdline'])):
                 if isDebugEnabled():
-                    logMsg('DEBUG: first child is process\n' )
+                    logMsg('(%s) - DEBUG: first child is process\n' %(programConfig.name,) )
                 firstChildIsProcess = True
                 foundMatchingChild = True
                 self.pid = rootPid
 
+        if useShell is True:
+            parentProcessType = 'shell'
+        else:
+            parentProcessType = 'process'
         
         while time.time() < successAfter:
             pollResult = pipe.poll()
             if pollResult is not None:
-                if useShell is True:
-                    whatExited = "shell"
-                else:
-                    whatExited = "process"
-                logErr('(%s) - Parent %s exited with code=%d\n' %(programConfig.name, whatExited, pollResult))
+                logErr('(%s) - Parent %s exited with code=%d\n' %(programConfig.name, parentProcessType, pollResult))
                 return ReturnCodes.PROGRAM_FAILED_TO_LAUNCH
 
             if firstChildIsProcess is True:
                 continue
 
             if isDebugEnabled():
-                logMsg('DEBUG: Checking for child pids of %d\n' %(rootPid,))
+                logMsg('(%s) - DEBUG: Checking for child pids of %d\n' %(programConfig.name, rootPid,))
 
             childPids = Program.getAllChildPidsInTree(rootPid)
             if childPids:
                 if isDebugEnabled():
-                    logMsg('DEBUG: Found children of %d: %s\n' %(rootPid, str(childPids),))
+                    logMsg('(%s) - DEBUG: Found children of %d: %s\n' %(programConfig.name, rootPid, str(childPids),))
                 for childPid in childPids:
                     try:
                         cmdline = self._getProcCmdline(childPid)
                         if isDebugEnabled():
-                            logMsg('DEBUG: Checking child pid=%d %s...\n' %(childPid, cmdline['cmdline']))
+                            logMsg('(%s) - DEBUG: Checking child pid=%d %s...\n' %(programConfig.name, childPid, cmdline['cmdline']))
                         if cmdline['cmdline'] and not cmdline['cmdline'].startswith('/bin/sh -c') and bool(programConfig.proctitle_re.search(cmdline['cmdline'])):
-                            if isDebugEnabled():
-                                logMsg('DEBUG Matched child!\n')
+                            logMsg('(%s) - Found matching child, pid=%d cmdline="%s"\n' %(programConfig.name, childPid, cmdline['cmdline']))
                             self.pid = childPid
                             foundMatchingChild = True
                             break
                     except Exception as e:
                         if isDebugEnabled():
-                            logErr('Error checking child pid=%d: %s\n' %(childPid, str(e),))
+                            logErr('(%s) - Error checking child pid=%d: %s\n' %(programConfig.name, childPid, str(e),))
                             traceback.print_exc()
 
                 if foundMatchingChild is True:
                     while time.time() < successAfter:
                         time.sleep(pollTime)
                         if not os.path.exists('/proc/%d' %(self.pid,)):
-                            logMsg('Found child process pid=%d cmdline=%s, but it stopped running. Checking other children...\n' %(self.pid, str(cmdline)))
+                            logMsg('(%s) - Found child process pid=%d cmdline=%s, but it stopped running. Checking other children...\n' %(programConfig.name, self.pid, str(cmdline)))
                             self.pid = None
                             foundMatchingChild = False
                             break
@@ -495,7 +492,7 @@ class Program(object):
             time.sleep(pollTime)
         
         if foundMatchingChild is False:
-            logErr('(%s) - Failed to find program matching proctitle_re within success_seconds=%.1f seconds. Shell pid is: %d\n' %(programConfig.name, programConfig.success_seconds, pipe.pid))
+            logErr('(%s) - Failed to find program matching proctitle_re within success_seconds=%.1f seconds. Parent %s pid is: %d\n' %(programConfig.name, programConfig.success_seconds, parentProcessType, pipe.pid))
             return ReturnCodes.PROGRAM_FAILED_TO_LAUNCH
 
         try:
