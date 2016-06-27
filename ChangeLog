@@ -1,3 +1,10 @@
+* 1.5.6 - Jun 27 2016
+- Improve logging when starting a program, including prefixing each with
+($programName), noting when a match is made, etc
+- Improve documentation a lot
+- Improve some log strings
+
+
 * 1.5.5 - Jun 23 2016
 - When we fail to match a child with proctitle_re, include "within success_seconds=X seconds" within the error message.
  The intent is to direct folks to looking into if maybe they need to increase that value from the default, for example if it takes 5 seconds to start their application,
