@@ -146,6 +146,7 @@ class Usrsvc(object):
                 return ReturnCodes.SUCCESS
 
             prog = Program(programConfig.pidfile)
+            logMsg('Starting %s (success_seconds=%.1f)\n' %(programName, programConfig.success_seconds ))
             returnCode = prog.startProgram(programConfig)
             
             if returnCode == ReturnCodes.SUCCESS:
