@@ -428,6 +428,7 @@ class Program(object):
         rootPid = int(pipe.pid)
         firstChildIsProcess = False
         foundMatchingChild = False
+        cmdline = None
 
         if useShell is False:
             try:

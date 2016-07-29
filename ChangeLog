@@ -1,3 +1,6 @@
+* 1.5.7 - Jul 28 2016
+- Fix rare chance when program crashes for variable to be undefined
+
 * 1.5.6 - Jun 27 2016
 - Improve logging when starting a program, including prefixing each with
 ($programName), noting when a match is made, etc
