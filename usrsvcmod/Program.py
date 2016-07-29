@@ -410,9 +410,11 @@ class Program(object):
             # We've failed to restart after the given number of tries.
             return ReturnCodes.PROGRAM_EXITED_UNEXPECTEDLY
 
+
+        cmdline = None
+
         # Check if useshell is True, but we didn't actually use one.
         if useShell is True:
-            cmdline = None
             try:
                 cmdline = self._getProcCmdline(pipe.pid)
             except:
@@ -428,7 +430,6 @@ class Program(object):
         rootPid = int(pipe.pid)
         firstChildIsProcess = False
         foundMatchingChild = False
-        cmdline = None
 
         if useShell is False:
             try:
