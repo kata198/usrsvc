@@ -18,7 +18,7 @@
 
 # vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
 
-__version__ = '1.5.6'
-__version_tuple__ = (1, 5, 6)
+__version__ = '1.5.7'
+__version_tuple__ = (1, 5, 7)
 
 # vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
