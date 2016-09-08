@@ -381,6 +381,21 @@ Any properties defined by the Program explicitly will override any defaults inhe
 
 
 
+Systemd Integration
+-------------------
+
+As of 1.5.9 usrsvcd is integrated with systemd. In the source distribution, you'll find a "systemd" directory which contains a unit, and an install.sh script to install it.
+
+If usrsvcd is installed somewhere other than "/usr/bin/usrsvcd", you'll need to modify the lines in "usrsvcd@.service" that start with "Exec" with the correct path.
+
+
+Use "systemctl start usrsvcd@myuser" to start usrsvcd as "myuser"
+
+Use "systemctl enable usrsvcd@myuser" to enable usrsvcd to start as "myuser" on boot.
+
+As per the design of usrsvc, you can have multiple daemons enabled for multiple users.
+
+
 Examples
 --------
 
