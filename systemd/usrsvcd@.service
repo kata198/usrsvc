@@ -8,3 +8,5 @@ ExecStop=/usr/bin/usrsvcd stop
 ExecReload=/usr/bin/usrsvcd restart
 User=%i
 
+[Install]
+WantedBy=multi-user.target
