@@ -1,3 +1,6 @@
+* 1.5.9 - Sep 8 2016
+- Add systemd integration (a unit file), and instructions on how to use.
+
 * 1.5.8 - Jul 28 2016
 - Fix rare chance when program crashes for variable to be undefined
 
