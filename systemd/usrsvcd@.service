@@ -1,0 +1,10 @@
+[Unit]
+Description=Start usrsvcd for user '%I'
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/usrsvcd start
+ExecStop=/usr/bin/usrsvcd stop
+ExecReload=/usr/bin/usrsvcd restart
+User=%i
+

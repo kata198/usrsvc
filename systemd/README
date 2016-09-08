@@ -1,0 +1,13 @@
+NOTE: If you have "usrsvcd" located somewhere other than "/usr/bin/usrsvcd" in your install, you need to adjust the "usrsvcd@.service" lines that start with "Exec" accordingly.
+
+
+Running "install.sh" will install the usrsvcd unit to the systemd directory, and reload the units.
+
+
+Start usrsvcd for user, "myuser", by running:
+
+systemctl start usrsvcd@myuser
+
+Enable at boot by running:
+
+systemctl enable usrsvcd@myuser
