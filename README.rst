@@ -1,8 +1,9 @@
 usrsvc
 ======
 
-A user service manager. Intended for managing services/daemons running as service account users.
+A service manager for running/managing/monitoring/auto-restarting daemons and services at the user (non-root) level
 
+Intended for managing services/daemons running as service account users.
 
 
 Design
