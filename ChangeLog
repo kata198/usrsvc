@@ -1,3 +1,6 @@
+* 1.5.11 - Jun 5 2017
+- Update summary, description, compatability. Mark as production-ready.
+
 * 1.5.10 - Sep 8 2016
 - Fix missing Install section in systemd unit
 

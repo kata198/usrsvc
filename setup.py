@@ -53,7 +53,7 @@ if __name__ == '__main__':
         sys.stderr.write(str(e)  +  '\n')
 
     setup(name='usrsvc',
-            version='1.5.10',
+            version='1.5.11',
             packages=['usrsvcmod', 'usrsvcmod.Monitoring', 'usrsvcmod.client'],
             scripts=['usrsvc', 'usrsvcd'],
             author='Tim Savannah',
