@@ -1,5 +1,7 @@
-* 1.5.11 - Jun 5 2017
+* 1.5.12 - Jun 5 2017
 - Update summary, description, compatability. Mark as production-ready.
+- Update systemd install.sh to better support package installs, (support
+DESTDIR param)
 
 * 1.5.10 - Sep 8 2016
 - Fix missing Install section in systemd unit
