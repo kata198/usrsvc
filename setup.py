@@ -21,7 +21,7 @@ if __name__ == '__main__':
     if dirName and os.getcwd() != dirName:
         os.chdir(dirName)
 
-    summary = 'A user service manager for running/managing/monitoring daemons and services'
+    summary = 'A service manager for running/managing/monitoring/auto-restarting daemons and services at the user (non-root) level'
 
     # Use README.rst for the long_description ( for pypi )
     try:
