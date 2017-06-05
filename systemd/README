@@ -11,3 +11,12 @@ systemctl start usrsvcd@myuser
 Enable at boot by running:
 
 systemctl enable usrsvcd@myuser
+
+
+To install into a package, run like:
+
+./install.sh DESTDIR=$RPM_BUILD_ROOT
+
+or
+
+./install.sh DESTDIR=$pkgdir
