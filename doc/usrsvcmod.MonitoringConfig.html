@@ -1,0 +1,77 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html ><head ><title >Python: module usrsvcmod.MonitoringConfig</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+</head><body bgcolor="#f0f0f8" >
+
+<table width="100%" cellspacing="0" cellpadding="2" border="0" summary="heading" >
+<tr bgcolor="#7799ee" >
+<td valign="bottom" >&nbsp;<br />
+<font color="#ffffff" face="helvetica, arial" >&nbsp;<br /><big ><big ><strong ><a href="usrsvcmod.html" ><font color="#ffffff" >usrsvcmod</font></a>.MonitoringConfig</strong></big></big></font></td><td align="right" valign="bottom" ><font color="#ffffff" face="helvetica, arial" ><a href="usrsvcmod.html" >index</a></font></td></tr></table>
+    <p ><tt >Copyright&nbsp;(c)&nbsp;2016&nbsp;Tim&nbsp;Savannah&nbsp;All&nbsp;Rights&nbsp;Reserved.<br />
+This&nbsp;software&nbsp;is&nbsp;licensed&nbsp;under&nbsp;the&nbsp;terms&nbsp;of&nbsp;the&nbsp;GPLv3.<br />
+This&nbsp;may&nbsp;change&nbsp;at&nbsp;my&nbsp;discretion,&nbsp;retroactively,&nbsp;and&nbsp;without&nbsp;notice.<br />
+&nbsp;<br />
+You&nbsp;should&nbsp;have&nbsp;received&nbsp;a&nbsp;copy&nbsp;of&nbsp;this&nbsp;with&nbsp;the&nbsp;source&nbsp;distribution&nbsp;as&nbsp;a&nbsp;file&nbsp;titled,&nbsp;LICENSE.<br />
+&nbsp;<br />
+The&nbsp;most&nbsp;current&nbsp;license&nbsp;can&nbsp;be&nbsp;found&nbsp;at:<br />
+https://github.com/kata198/usrsvc/LICENSE<br />
+&nbsp;<br />
+This&nbsp;location&nbsp;may&nbsp;need&nbsp;to&nbsp;be&nbsp;changed&nbsp;at&nbsp;some&nbsp;point&nbsp;in&nbsp;the&nbsp;future,&nbsp;in&nbsp;which&nbsp;case<br />
+you&nbsp;are&nbsp;may&nbsp;email&nbsp;Tim&nbsp;Savannah&nbsp;&lt;kata198&nbsp;at&nbsp;gmail&nbsp;dot&nbsp;com&gt;,&nbsp;or&nbsp;find&nbsp;them&nbsp;on&nbsp;the<br />
+current&nbsp;website&nbsp;intended&nbsp;for&nbsp;distribution&nbsp;of&nbsp;usrsvc.<br />
+&nbsp;<br />
+&nbsp;<br />
+'<a href="#MonitoringConfig" >MonitoringConfig</a>'&nbsp;represents&nbsp;the&nbsp;monitoring&nbsp;subsection&nbsp;of&nbsp;a&nbsp;ProgramConfig</tt></p>
+<p >
+<table width="100%" cellspacing="0" cellpadding="2" border="0" summary="section" >
+<tr bgcolor="#ee77aa" >
+<td colspan="3" valign="bottom" >&nbsp;<br />
+<font color="#ffffff" face="helvetica, arial" ><big ><strong >Classes</strong></big></font></td></tr>
+    
+<tr ><td bgcolor="#ee77aa" ><tt >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td >&nbsp;</td>
+<td width="100%" ><dl >
+<dt ><font face="helvetica, arial" ><a href="builtins.html#object" >builtins.object</a>
+</font></dt><dd >
+<dl >
+<dt ><font face="helvetica, arial" ><a href="usrsvcmod.MonitoringConfig.html#MonitoringConfig" >MonitoringConfig</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p >
+<table width="100%" cellspacing="0" cellpadding="2" border="0" summary="section" >
+<tr bgcolor="#ffc8d8" >
+<td colspan="3" valign="bottom" >&nbsp;<br />
+<font color="#000000" face="helvetica, arial" ><a name="MonitoringConfig" >class <strong >MonitoringConfig</strong></a>(<a href="builtins.html#object" >builtins.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8" ><td rowspan="2" ><tt >&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan="2" ><tt ><a href="#MonitoringConfig" >MonitoringConfig</a>&nbsp;-&nbsp;The&nbsp;[[Monitor]]&nbsp;subsection&nbsp;of&nbsp;a&nbsp;Program<br />&nbsp;</tt></td></tr>
+<tr ><td >&nbsp;</td>
+<td width="100%" >Methods defined here:<br />
+<dl ><dt ><a name="MonitoringConfig-__init__" ><strong >__init__</strong></a>(self, monitor_after=30, activityfile='', activityfile_limit=120, rss_limit=0, **kwargs)</dt><dd ><tt >Config&nbsp;values:<br />
+&nbsp;<br />
+monitor_after&nbsp;-&nbsp;Minimum&nbsp;number&nbsp;of&nbsp;seconds&nbsp;that&nbsp;program&nbsp;needs&nbsp;to&nbsp;be&nbsp;running&nbsp;before&nbsp;monitoring&nbsp;will&nbsp;begin.&nbsp;Default&nbsp;30.&nbsp;0&nbsp;disables&nbsp;this&nbsp;feature.<br />
+activityfile&nbsp;-&nbsp;File&nbsp;or&nbsp;Directory&nbsp;which&nbsp;must&nbsp;be&nbsp;modified&nbsp;every&nbsp;#activityfile_limit#&nbsp;seconds,&nbsp;or&nbsp;program&nbsp;will&nbsp;be&nbsp;restarted.&nbsp;Default&nbsp;undefined/empty&nbsp;string&nbsp;disables&nbsp;this.<br />
+activityfile_limit&nbsp;-&nbsp;Default&nbsp;120.&nbsp;If&nbsp;activityfile&nbsp;is&nbsp;defined,&nbsp;this&nbsp;is&nbsp;the&nbsp;number&nbsp;of&nbsp;seconds&nbsp;is&nbsp;the&nbsp;maximum&nbsp;that&nbsp;can&nbsp;go&nbsp;between&nbsp;modifications&nbsp;of&nbsp;the&nbsp;provided&nbsp;#activityfile#&nbsp;before&nbsp;triggering&nbsp;a&nbsp;restart.<br />
+rss_limit&nbsp;-&nbsp;Default&nbsp;0.&nbsp;If&nbsp;&gt;&nbsp;0,&nbsp;specifies&nbsp;the&nbsp;maximum&nbsp;RSS&nbsp;(Resident&nbsp;Set&nbsp;Size)&nbsp;in&nbsp;kilobytes&nbsp;(1024&nbsp;bytes)</tt></dd></dl>
+
+<dl ><dt ><a name="MonitoringConfig-__str__" ><strong >__str__</strong></a>(self)</dt><dd ><tt >Return&nbsp;str(self).</tt></dd></dl>
+
+<dl ><dt ><a name="MonitoringConfig-isMonitoringActive" ><strong >isMonitoringActive</strong></a>(self)</dt></dl>
+
+<hr />
+Data descriptors defined here:<br />
+<dl ><dt ><strong >__dict__</strong></dt>
+<dd ><tt >dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl ><dt ><strong >__weakref__</strong></dt>
+<dd ><tt >list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table></p></td></tr></table><p >
+<table width="100%" cellspacing="0" cellpadding="2" border="0" summary="section" >
+<tr bgcolor="#55aa55" >
+<td colspan="3" valign="bottom" >&nbsp;<br />
+<font color="#ffffff" face="helvetica, arial" ><big ><strong >Data</strong></big></font></td></tr>
+    
+<tr ><td bgcolor="#55aa55" ><tt >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td >&nbsp;</td>
+<td width="100%" ><strong >__all__</strong> = ('MonitoringConfig',)</td></tr></table>
+</p></p></body></html>

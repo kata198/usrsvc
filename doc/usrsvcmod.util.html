@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html ><head ><title >Python: module usrsvcmod.util</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+</head><body bgcolor="#f0f0f8" >
+
+<table width="100%" cellspacing="0" cellpadding="2" border="0" summary="heading" >
+<tr bgcolor="#7799ee" >
+<td valign="bottom" >&nbsp;<br />
+<font color="#ffffff" face="helvetica, arial" >&nbsp;<br /><big ><big ><strong ><a href="usrsvcmod.html" ><font color="#ffffff" >usrsvcmod</font></a>.util</strong></big></big></font></td><td align="right" valign="bottom" ><font color="#ffffff" face="helvetica, arial" ><a href="usrsvcmod.html" >index</a></font></td></tr></table>
+    <p ><tt >Copyright&nbsp;(c)&nbsp;2016&nbsp;Tim&nbsp;Savannah&nbsp;All&nbsp;Rights&nbsp;Reserved.<br />
+This&nbsp;software&nbsp;is&nbsp;licensed&nbsp;under&nbsp;the&nbsp;terms&nbsp;of&nbsp;the&nbsp;GPLv3.<br />
+This&nbsp;may&nbsp;change&nbsp;at&nbsp;my&nbsp;discretion,&nbsp;retroactively,&nbsp;and&nbsp;without&nbsp;notice.<br />
+&nbsp;<br />
+You&nbsp;should&nbsp;have&nbsp;received&nbsp;a&nbsp;copy&nbsp;of&nbsp;this&nbsp;with&nbsp;the&nbsp;source&nbsp;distribution&nbsp;as&nbsp;a&nbsp;file&nbsp;titled,&nbsp;LICENSE.<br />
+&nbsp;<br />
+The&nbsp;most&nbsp;current&nbsp;license&nbsp;can&nbsp;be&nbsp;found&nbsp;at:<br />
+https://github.com/kata198/usrsvc/LICENSE<br />
+&nbsp;<br />
+This&nbsp;location&nbsp;may&nbsp;need&nbsp;to&nbsp;be&nbsp;changed&nbsp;at&nbsp;some&nbsp;point&nbsp;in&nbsp;the&nbsp;future,&nbsp;in&nbsp;which&nbsp;case<br />
+you&nbsp;are&nbsp;may&nbsp;email&nbsp;Tim&nbsp;Savannah&nbsp;&lt;kata198&nbsp;at&nbsp;gmail&nbsp;dot&nbsp;com&gt;,&nbsp;or&nbsp;find&nbsp;them&nbsp;on&nbsp;the<br />
+current&nbsp;website&nbsp;intended&nbsp;for&nbsp;distribution&nbsp;of&nbsp;usrsvc.<br />
+&nbsp;<br />
+&nbsp;<br />
+usrsvc&nbsp;is&nbsp;a&nbsp;user&nbsp;process&nbsp;manager</tt></p>
+<p >
+<table width="100%" cellspacing="0" cellpadding="2" border="0" summary="section" >
+<tr bgcolor="#aa55cc" >
+<td colspan="3" valign="bottom" >&nbsp;<br />
+<font color="#ffffff" face="helvetica, arial" ><big ><strong >Modules</strong></big></font></td></tr>
+    
+<tr ><td bgcolor="#aa55cc" ><tt >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td >&nbsp;</td>
+<td width="100%" ><table width="100%" summary="list" ><tr ><td width="25%" valign="top" ><a href="os.html" >os</a><br />
+</td><td width="25%" valign="top" ><a href="pwd.html" >pwd</a><br />
+</td><td width="25%" valign="top" ><a href="socket.html" >socket</a><br />
+</td><td width="25%" valign="top" ><a href="time.html" >time</a><br />
+</td></tr></table></td></tr></table><p >
+<table width="100%" cellspacing="0" cellpadding="2" border="0" summary="section" >
+<tr bgcolor="#eeaa77" >
+<td colspan="3" valign="bottom" >&nbsp;<br />
+<font color="#ffffff" face="helvetica, arial" ><big ><strong >Functions</strong></big></font></td></tr>
+    
+<tr ><td bgcolor="#eeaa77" ><tt >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td >&nbsp;</td>
+<td width="100%" ><dl ><dt ><a name="-findProgramPath" ><strong >findProgramPath</strong></a>(programName, environPath=None)</dt><dd ><tt >findProgramPath&nbsp;-&nbsp;Find&nbsp;the&nbsp;path&nbsp;to&nbsp;an&nbsp;excutable.<br />
+&nbsp;<br />
+@param&nbsp;programName&nbsp;-&nbsp;Name&nbsp;to&nbsp;searh<br />
+@param&nbsp;env&nbsp;-&nbsp;PATH&nbsp;to&nbsp;search,&nbsp;or&nbsp;None&nbsp;to&nbsp;use&nbsp;os.environ['PATH']<br />
+&nbsp;<br />
+@return&nbsp;-&nbsp;Path&nbsp;to&nbsp;program&nbsp;if&nbsp;found,&nbsp;otherwise&nbsp;None</tt></dd></dl>
+ <dl ><dt ><a name="-getHostname" ><strong >getHostname</strong></a>()</dt></dl>
+ <dl ><dt ><a name="-getUsername" ><strong >getUsername</strong></a>()</dt></dl>
+ <dl ><dt ><a name="-waitUpTo" ><strong >waitUpTo</strong></a>(testFunc, funcArgs, timeout, interval=0.1)</dt><dd ><tt >waitUpTo&nbsp;-&nbsp;Wait&nbsp;up&nbsp;to&nbsp;a&nbsp;certain&nbsp;amount&nbsp;of&nbsp;time,&nbsp;or&nbsp;until&nbsp;a&nbsp;provided&nbsp;test&nbsp;function<br />
+&nbsp;&nbsp;&nbsp;&nbsp;returns&nbsp;False.<br />
+&nbsp;<br />
+@param&nbsp;testFunc&nbsp;&lt;function/lambda&gt;&nbsp;-&nbsp;Test&nbsp;function,&nbsp;True&nbsp;if&nbsp;keep&nbsp;going&nbsp;else&nbsp;False<br />
+@param&nbsp;funcArgs&nbsp;&lt;list/tuple&gt;&nbsp;-&nbsp;Args&nbsp;to&nbsp;past&nbsp;to&nbsp;test&nbsp;function<br />
+@param&nbsp;timeout&nbsp;&lt;float&gt;&nbsp;-&nbsp;Max&nbsp;number&nbsp;&nbsp;of&nbsp;seconds&nbsp;to&nbsp;wait<br />
+@param&nbsp;interval&nbsp;&lt;float&gt;&nbsp;-&nbsp;Interval&nbsp;between&nbsp;polls.&nbsp;Does&nbsp;not&nbsp;make&nbsp;sense&nbsp;to&nbsp;be&nbsp;&gt;&nbsp;timeout.<br />
+&nbsp;<br />
+@return&nbsp;-&nbsp;True&nbsp;if&nbsp;timeout&nbsp;occured&nbsp;(function&nbsp;never&nbsp;returned&nbsp;False),&nbsp;otherwise&nbsp;False.</tt></dd></dl>
+</td></tr></table><p >
+<table width="100%" cellspacing="0" cellpadding="2" border="0" summary="section" >
+<tr bgcolor="#55aa55" >
+<td colspan="3" valign="bottom" >&nbsp;<br />
+<font color="#ffffff" face="helvetica, arial" ><big ><strong >Data</strong></big></font></td></tr>
+    
+<tr ><td bgcolor="#55aa55" ><tt >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td >&nbsp;</td>
+<td width="100%" ><strong >__all__</strong> = ('waitUpTo', 'getUsername', 'getHostname', 'findProgramPath')</td></tr></table>
+</p></p></p></body></html>
