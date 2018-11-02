@@ -1,5 +1,5 @@
 '''
-    Copyright (c) 2016 Tim Savannah All Rights Reserved.
+    Copyright (c) 2016 - 2018 Tim Savannah All Rights Reserved.
     This software is licensed under the terms of the GPLv3.
     This may change at my discretion, retroactively, and without notice.
 
@@ -18,7 +18,7 @@
 
 # vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
 
-__version__ = '1.5.12'
-__version_tuple__ = (1, 5, 12)
+__version__ = '1.5.13'
+__version_tuple__ = (1, 5, 13)
 
 # vim:set ts=4 shiftwidth=4 softtabstop=4 expandtab :
