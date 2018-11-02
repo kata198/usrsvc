@@ -1,3 +1,7 @@
+* 1.5.13 - Nov 2 2018
+
+- Add reliance on "basic.target" in addition to being a part of "multi-user", as one may not imply the other in all cases anymore
+
 * 1.5.12 - Jun 5 2017
 - Update summary, description, compatability. Mark as production-ready.
 - Update systemd install.sh to better support package installs, (support
