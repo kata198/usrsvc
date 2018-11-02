@@ -1,5 +1,7 @@
 [Unit]
 Description=Start usrsvcd for user '%I'
+Wants=basic.target
+After=basic.target
 
 [Service]
 Type=forking
