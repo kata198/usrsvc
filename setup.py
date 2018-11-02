@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-    Copyright (c) 2016 Tim Savannah All Rights Reserved.
+    Copyright (c) 2016, 2017, 2018 Tim Savannah All Rights Reserved.
     This software is licensed under the terms of the GPLv2.
 
     You should have received a copy of this with the source distribution as LICENSE,
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         sys.stderr.write(str(e)  +  '\n')
 
     setup(name='usrsvc',
-            version='1.5.12',
+            version='1.5.13',
             packages=['usrsvcmod', 'usrsvcmod.Monitoring', 'usrsvcmod.client'],
             scripts=['usrsvc', 'usrsvcd'],
             author='Tim Savannah',
